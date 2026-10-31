@@ -7,6 +7,7 @@ jetio_add_test_executable(jetio_unit_tests unit
     memory.cpp
     pseudo.cpp
     std/contract.cpp
+    std/nt_string_view.cpp
     types.cpp
     version.cpp)
 target_include_directories(jetio_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

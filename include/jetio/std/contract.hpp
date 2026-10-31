@@ -54,7 +54,7 @@ namespace jetio
 
     namespace detail
     {
-        constexpr const char *to_string(contract_kind kind) noexcept
+        constexpr std::string_view to_string(contract_kind kind) noexcept
         {
             switch (kind)
             {
@@ -68,14 +68,20 @@ namespace jetio
             return "contract";
         }
 
+        // The pointers of std::source_location and of stderr are the boundary: they become
+        // string_views at once, and are written with their length.
         [[noreturn]] inline void abort_on_violation(const contract_violation &violation)
         {
+            const std::string_view file = violation.location.file_name();
+            const std::string_view function = violation.location.function_name();
+            const std::string_view kind = to_string(violation.kind);
             // NOLINTNEXTLINE(modernize-use-std-print): std::println can throw, this must not
-            std::fprintf(stderr, "%s(%u): %s: %s violated: %.*s\n", violation.location.file_name(),
-                         static_cast<unsigned>(violation.location.line()),
-                         violation.location.function_name(), to_string(violation.kind),
-                         static_cast<int>(violation.expression.size()),
-                         violation.expression.data());
+            std::fprintf(
+                stderr, "%.*s(%u): %.*s: %.*s violated: %.*s\n", static_cast<int>(file.size()),
+                file.data(), static_cast<unsigned>(violation.location.line()),
+                static_cast<int>(function.size()), function.data(), static_cast<int>(kind.size()),
+                kind.data(), static_cast<int>(violation.expression.size()),
+                violation.expression.data());
             std::abort();
         }
 

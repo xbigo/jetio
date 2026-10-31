@@ -1,11 +1,13 @@
 # Static analysis placeholder: enable with -DJETIO_ENABLE_CLANG_TIDY=ON.
 # Extend the check list as the code base grows. The disabled checks are style preferences that
-# the project has not decided on, not findings.
+# the project has not decided on, not findings. The rule about arrays is that none represents a
+# string, which no check can express.
 Checks: >
   -*,
   bugprone-*,
   modernize-*,
   performance-*,
+  -modernize-avoid-c-arrays,
   -modernize-return-braced-init-list,
   -modernize-use-designated-initializers,
   -modernize-use-nodiscard,

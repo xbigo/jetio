@@ -33,7 +33,7 @@ TEST_CASE("range size", "[types]")
 
     if constexpr (contract_level >= 2)
     {
-        test::throwing_contract_handler handler;
+        test::scoped_throwing_contract_handler handler;
         CHECK_THROWS_AS(range_size({5, 4}), contract_failure);
         CHECK_THROWS_AS(range_size({-1, 4}), contract_failure);
     }
@@ -54,7 +54,7 @@ TEST_CASE("conversion to platform types", "[types]")
     }
     if constexpr (contract_level >= 1 && sizeof(std::size_t) == 4)
     {
-        test::throwing_contract_handler handler;
+        test::scoped_throwing_contract_handler handler;
         CHECK_THROWS_AS(to_size_t(size64_t{1} << 32), contract_failure);
     }
 }

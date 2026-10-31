@@ -195,7 +195,7 @@ TEST_CASE("views", "[memory]")
     {
         if constexpr (contract_level >= 1)
         {
-            test::throwing_contract_handler handler;
+            test::scoped_throwing_contract_handler handler;
             CHECK_THROWS_AS(view_rd(device, {5, 2}), contract_failure);
             CHECK_THROWS_AS(view_wr(device, {-1, 2}), contract_failure);
             CHECK_THROWS_AS(device.view_rd({5, 2}), contract_failure);
@@ -312,7 +312,7 @@ TEST_CASE("seek_forward", "[memory]")
 
     if constexpr (contract_level >= 2)
     {
-        test::throwing_contract_handler handler;
+        test::scoped_throwing_contract_handler handler;
         CHECK_THROWS_AS(device.seek_forward(3), contract_failure);
         if constexpr (contract_level >= 3)
             CHECK_THROWS_AS(seek_forward(device, 3), contract_failure);

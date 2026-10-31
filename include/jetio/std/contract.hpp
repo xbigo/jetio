@@ -1,35 +1,20 @@
 #pragma once
 
-// Design by contract, simulated for C++23.
+// Design by contract, simulated for C++23 (see docs/design/contracts.md).
 //
-//   JIO_Expects(cond)           precondition: caller's obligation, checked on entry
-//   JIO_Ensures(cond)           postcondition: callee's obligation, checked before returning
-//   JIO_Assert(cond)            internal assertion
-//   JIO_Expects_critical(cond)  same, but kept in release builds, see below
-//   JIO_Assert_critical(cond)
-//   JIO_Expects_audit(cond)     same, for checks too expensive for every build
-//   JIO_Ensures_audit(cond)
-//   JIO_Assert_audit(cond)
+//   JIO_Expects(cond)  precondition, checked on entry
+//   JIO_Ensures(cond)  postcondition, checked before returning
+//   JIO_Assert(cond)   assertion
 //
-// They map one-to-one to C++26 pre(), post() and contract_assert(), so they can be replaced
-// mechanically once the library moves to C++26.
+// Each has a _critical variant (also checked in release builds) and an _audit variant
+// (expensive, debug builds only), except JIO_Ensures_critical. They correspond to C++26 pre(),
+// post() and contract_assert().
 //
-// JIO_CONTRACT_LEVEL selects what is checked (define it for the whole program):
-//   0  nothing is checked or evaluated
-//   1  critical checks only
-//   2  critical and default checks
-//   3  critical, default and audit checks
-// If not defined it is 1 with NDEBUG and 3 without NDEBUG.
+// JIO_CONTRACT_LEVEL: 0 nothing is checked, 1 critical, 2 plus default, 3 plus audit. The
+// default is 1 with NDEBUG and 3 without. Use the same level in the whole program.
 //
-// The plain macros cost nothing in release builds, so write them freely. Use a _critical macro
-// only if a violation would otherwise lead to memory unsafety, undefined behavior or
-// unrecoverable data corruption, and the check is O(1) and does not call into a device.
-// Use an _audit macro if the check is expensive or calls into a device.
-//
-// A violated contract calls the violation handler. The default handler reports the violation to
-// stderr and aborts. A handler that returns lets execution continue ("observe" semantics).
-// Use a different level in different translation units only if you accept an ODR violation in
-// the inline functions.
+// A violation calls the handler set with set_contract_violation_handler. The handler must not
+// return: it terminates (the default does) or, in tests, throws.
 
 #include <atomic>
 #include <cstdint>
@@ -64,6 +49,7 @@ namespace jetio
         std::source_location location;
     };
 
+    /// Must not return: terminate the program or, in tests, throw.
     using contract_violation_handler = void (*)(const contract_violation &);
 
     namespace detail
@@ -96,7 +82,8 @@ namespace jetio
         inline std::atomic<contract_violation_handler> violation_handler{&abort_on_violation};
     } // namespace detail
 
-    /// Replaces the contract violation handler.
+    /// Replaces the contract violation handler. The handler must not return, see
+    /// contract_violation_handler.
     /// @param handler the new handler; nullptr restores the default one
     /// @return the previous handler
     /// @post the handler is never null
@@ -107,12 +94,16 @@ namespace jetio
     }
 
     /// Reports a violated contract. Called by the macros; not meant to be called directly.
-    inline void
+    /// Never returns normally: the handler terminates or throws, and if it returns the program
+    /// is aborted.
+    [[noreturn]] inline void
     handle_contract_violation(contract_kind kind, std::string_view expression,
                               std::source_location location = std::source_location::current())
     {
         detail::violation_handler.load()(
             contract_violation{.kind = kind, .expression = expression, .location = location});
+        std::fputs("jetio: the contract violation handler returned\n", stderr);
+        std::abort();
     }
 } // namespace jetio
 

@@ -10,7 +10,7 @@ Every public function states its contract and the library checks it where that i
 | `JIO_Expects_critical`, `JIO_Assert_critical` | `pre`, `contract_assert` | Same, but also checked in release builds |
 | `JIO_Expects_audit`, `JIO_Ensures_audit`, `JIO_Assert_audit` | none | Same, for checks too expensive for every build; C++26 has no audit level |
 
-Header: `jetio/contract.hpp`. These are the only macros in the public interface of the library, apart from the `JIO_CONTRACT_LEVEL` switch. They are not exported by a C++ module; the checks stay compiled into the module. A `JIO_Ensures_critical` does not exist yet; add it when a postcondition needs it.
+Header: `jetio/std/contract.hpp`: the contract facility is a language extension, and language extensions live in the `std` subdirectory (the namespace is `jetio`, because `jetio::std` would hide the real `std`). These are the only macros in the public interface of the library, apart from the `JIO_CONTRACT_LEVEL` switch. They are not exported by a C++ module; the checks stay compiled into the module. A `JIO_Ensures_critical` does not exist yet; add it when a postcondition needs it.
 
 ## What is a contract violation and what is an error
 
@@ -42,7 +42,7 @@ Postconditions that need the result are checked by assigning the result to a loc
 | 2 | Critical and default | |
 | 3 | Critical, default and audit | No `NDEBUG` (debug) |
 
-**Contracts are free in release unless marked critical.** That is the point of the policy: contracts are the core of the design, so writing one must never need a performance discussion. The price is that a violation in a release build is undefined behavior unless the contract is critical, so the criterion for critical is about consequences, not cost.
+**Contracts are free in release unless marked critical.** Checking a contract is the right of the callee, not a duty: a program that violates one is already broken, and the callee is entitled to rely on it without checking. Beyond that, performance matters. Contracts are the core of the design, so writing one must never need a performance discussion. The price is that a violation in a release build is undefined behavior unless the contract is critical, so the criterion for critical is about consequences, not cost.
 
 A check is **critical** if all of these hold:
 
@@ -59,7 +59,9 @@ Use the same level in the whole program. Different levels in different translati
 
 ## Violation handling
 
-`handle_contract_violation` calls the handler set by `set_contract_violation_handler`. The default handler prints the location and the expression to stderr and aborts. A handler that returns lets execution continue, which is how the unit tests observe violations: their handler throws.
+A violated contract means the program is in an undefined state, so there is no way to go on, and no handler may return. `handle_contract_violation` calls the handler set by `set_contract_violation_handler`; if the handler returns, the program aborts. The default handler prints the location and the expression to stderr and aborts.
+
+A handler may throw. That exists for white-box tests, of the facility itself and of functions with preconditions, where the test must get past the violation: their handler throws and the test catches the exception. Production code should terminate.
 
 ## noexcept
 

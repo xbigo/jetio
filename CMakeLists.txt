@@ -51,12 +51,12 @@ target_sources(jetio INTERFACE
     FILE_SET HEADERS
     BASE_DIRS include
     FILES
-        include/jetio/contract.hpp
         include/jetio/error.hpp
         include/jetio/iocore.hpp
         include/jetio/jetio.hpp
         include/jetio/memory.hpp
         include/jetio/pseudo.hpp
+        include/jetio/std/contract.hpp
         include/jetio/types.hpp
         include/jetio/version.hpp)
 target_compile_features(jetio INTERFACE cxx_std_23)

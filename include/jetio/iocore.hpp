@@ -15,7 +15,7 @@
 // Conventions
 //   - `ec` is the error_code_ptr of error.hpp. Failures a caller cannot check beforehand are
 //     reported through it (or io_error if it is null). Violating a documented precondition is
-//     a contract violation, see contract.hpp.
+//     a contract violation, see std/contract.hpp.
 //   - Offsets and sizes are in bytes and 64 bit (size64_t). Seeking beyond the end is
 //     allowed; reading there yields no data, writing there extends the device if it can grow.
 //   - Exception safety: a device is always left valid, destructible and usable. Individual
@@ -23,8 +23,8 @@
 //     progress only where it says so.
 //   - Operations with a precondition are not noexcept.
 
-#include <jetio/contract.hpp>
 #include <jetio/error.hpp>
+#include <jetio/std/contract.hpp>
 #include <jetio/types.hpp>
 
 #include <any>

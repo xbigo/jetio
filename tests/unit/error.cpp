@@ -42,7 +42,7 @@ TEST_CASE("only an error can be reported", "[error]")
 {
     if constexpr (contract_level >= 2)
     {
-        test::throwing_contract_handler handler;
+        test::scoped_throwing_contract_handler handler;
         error_code ec;
         CHECK_THROWS_AS(set_error_or_throw(&ec, error_code{}), test::contract_failure);
     }

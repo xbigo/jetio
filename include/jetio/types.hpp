@@ -1,6 +1,6 @@
 #pragma once
 
-#include <jetio/contract.hpp>
+#include <jetio/std/contract.hpp>
 
 #include <cstddef>
 #include <cstdint>

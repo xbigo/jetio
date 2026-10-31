@@ -74,7 +74,7 @@ TEST_CASE("the protocol checks the postconditions of a device", "[iocore]")
     if constexpr (contract_level < 2)
         SKIP("default contract checks are off");
 
-    test::throwing_contract_handler handler;
+    test::scoped_throwing_contract_handler handler;
     bad_device device;
     std::vector<std::byte> data(4);
 

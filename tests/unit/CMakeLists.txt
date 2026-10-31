@@ -2,13 +2,14 @@ jetio_require_catch2()
 include(Catch)
 
 jetio_add_test_executable(jetio_unit_tests unit
-    contract.cpp
     error.cpp
     iocore.cpp
     memory.cpp
     pseudo.cpp
+    std/contract.cpp
     types.cpp
     version.cpp)
+target_include_directories(jetio_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(jetio_unit_tests PRIVATE Catch2::Catch2WithMain)
 target_compile_definitions(jetio_unit_tests PRIVATE
     JETIO_TEST_EXPECTED_VERSION="${PROJECT_VERSION}")

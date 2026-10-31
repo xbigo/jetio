@@ -2,14 +2,14 @@
 
 // Error reporting for operations that can fail for reasons the caller cannot check beforehand
 // (IO failures, out of memory, platform limits). Programming errors are contract violations,
-// see contract.hpp.
+// see std/contract.hpp.
 //
 // Every such operation takes a trailing `error_code_ptr ec`:
 //   ec != nullptr  the operation never throws io_error; *ec is cleared on success and set on
 //                  failure
 //   ec == nullptr  the operation throws io_error on failure
 
-#include <jetio/contract.hpp>
+#include <jetio/std/contract.hpp>
 
 #include <system_error>
 #include <type_traits>

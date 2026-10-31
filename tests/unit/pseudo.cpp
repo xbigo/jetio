@@ -66,7 +66,7 @@ TEST_CASE("fill_device needs a pattern", "[pseudo]")
 {
     if constexpr (contract_level >= 1)
     {
-        test::throwing_contract_handler handler;
+        test::scoped_throwing_contract_handler handler;
         CHECK_THROWS_AS(fill_device(const_buffer{}), test::contract_failure);
     }
 }

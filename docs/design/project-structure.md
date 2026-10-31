@@ -1,7 +1,7 @@
 # Project structure
 
 ```
-include/jetio/   Public headers, included as <jetio/...>
+include/jetio/   Public headers, included as <jetio/...>; std/ holds language extensions
 src/             Private sources and headers (empty while header-only)
 tests/unit/      Catch2 unit tests
 tests/bench/     Google Benchmark micro-benchmarks
@@ -18,4 +18,5 @@ docs/            Documentation
 - The library target is `jetio::jetio`, an INTERFACE library. Its headers are a `FILE_SET HEADERS`, so CMake installs them, and `VERIFY_INTERFACE_HEADER_SETS` checks that each header compiles on its own.
 - When a compiled part appears, it is added under `src/` and linked from the `jetio` target, so the consumer-facing target name does not change.
 - Everything lives in namespace `jetio`; `jetio/jetio.hpp` includes all public headers.
-- Headers: `contract.hpp`, `types.hpp`, `error.hpp`, `iocore.hpp` (protocol), `memory.hpp`, `pseudo.hpp`, `version.hpp`.
+- Headers: `types.hpp`, `error.hpp`, `iocore.hpp` (protocol), `memory.hpp`, `pseudo.hpp`, `version.hpp`.
+- `include/jetio/std/` holds the language extensions, things the language or the standard library should have (today: `contract.hpp`). They do not depend on the rest of the library. Their namespace is `jetio` and their macros start with `JIO_`; a `jetio::std` namespace would hide the real `std`.

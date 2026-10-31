@@ -1,0 +1,301 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 28,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "linux-x64",
+            "hidden": true,
+            "inherits": "base",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "gcc",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "name": "clang",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "name": "debug",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "release",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "JETIO_BUILD_BENCHMARKS": "ON"
+            }
+        },
+        {
+            "name": "libcxx",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_CXX_COMPILER": "clang++-22",
+                "CMAKE_CXX_FLAGS": "-stdlib=libc++",
+                "CMAKE_EXE_LINKER_FLAGS": "-stdlib=libc++",
+                "CMAKE_SHARED_LINKER_FLAGS": "-stdlib=libc++"
+            }
+        },
+        {
+            "name": "linux-x64-gcc-debug",
+            "displayName": "Linux x64, GCC, Debug",
+            "inherits": [
+                "linux-x64",
+                "gcc",
+                "debug"
+            ]
+        },
+        {
+            "name": "linux-x64-gcc-release",
+            "displayName": "Linux x64, GCC, Release (with debug symbols)",
+            "inherits": [
+                "linux-x64",
+                "gcc",
+                "release"
+            ]
+        },
+        {
+            "name": "linux-x64-clang-debug",
+            "displayName": "Linux x64, Clang, Debug",
+            "inherits": [
+                "linux-x64",
+                "clang",
+                "debug"
+            ]
+        },
+        {
+            "name": "linux-x64-clang-release",
+            "displayName": "Linux x64, Clang, Release (with debug symbols)",
+            "inherits": [
+                "linux-x64",
+                "clang",
+                "release"
+            ]
+        },
+        {
+            "name": "linux-x64-clang-libcxx-debug",
+            "displayName": "Linux x64, Clang 22, libc++, Debug",
+            "inherits": [
+                "linux-x64",
+                "clang",
+                "libcxx",
+                "debug"
+            ]
+        },
+        {
+            "name": "linux-x64-clang-libcxx-release",
+            "displayName": "Linux x64, Clang 22, libc++, Release (with debug symbols)",
+            "inherits": [
+                "linux-x64",
+                "clang",
+                "libcxx",
+                "release"
+            ]
+        },
+        {
+            "name": "linux-x64-clang-asan",
+            "displayName": "Linux x64, Clang, Debug, ASan+UBSan",
+            "inherits": [
+                "linux-x64",
+                "clang",
+                "debug"
+            ],
+            "cacheVariables": {
+                "JETIO_SANITIZE": "address;undefined"
+            }
+        },
+        {
+            "name": "linux-x64-clang-tsan",
+            "displayName": "Linux x64, Clang, Debug, TSan",
+            "inherits": [
+                "linux-x64",
+                "clang",
+                "debug"
+            ],
+            "cacheVariables": {
+                "JETIO_SANITIZE": "thread"
+            }
+        },
+        {
+            "name": "linux-x64-clang-fuzz",
+            "displayName": "Linux x64, Clang, libFuzzer+ASan+UBSan",
+            "inherits": [
+                "linux-x64",
+                "clang",
+                "debug"
+            ],
+            "cacheVariables": {
+                "JETIO_SANITIZE": "address;undefined",
+                "JETIO_BUILD_FUZZERS": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "linux-x64-gcc-debug",
+            "configurePreset": "linux-x64-gcc-debug"
+        },
+        {
+            "name": "linux-x64-gcc-release",
+            "configurePreset": "linux-x64-gcc-release"
+        },
+        {
+            "name": "linux-x64-clang-debug",
+            "configurePreset": "linux-x64-clang-debug"
+        },
+        {
+            "name": "linux-x64-clang-release",
+            "configurePreset": "linux-x64-clang-release"
+        },
+        {
+            "name": "linux-x64-clang-asan",
+            "configurePreset": "linux-x64-clang-asan"
+        },
+        {
+            "name": "linux-x64-clang-tsan",
+            "configurePreset": "linux-x64-clang-tsan"
+        },
+        {
+            "name": "linux-x64-clang-fuzz",
+            "configurePreset": "linux-x64-clang-fuzz"
+        },
+        {
+            "name": "linux-x64-clang-libcxx-debug",
+            "configurePreset": "linux-x64-clang-libcxx-debug"
+        },
+        {
+            "name": "linux-x64-clang-libcxx-release",
+            "configurePreset": "linux-x64-clang-libcxx-release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "test-base",
+            "hidden": true,
+            "output": {
+                "outputOnFailure": true
+            },
+            "filter": {
+                "exclude": {
+                    "label": "bench|fuzz"
+                }
+            }
+        },
+        {
+            "name": "linux-x64-gcc-debug",
+            "configurePreset": "linux-x64-gcc-debug",
+            "inherits": "test-base"
+        },
+        {
+            "name": "linux-x64-gcc-release",
+            "configurePreset": "linux-x64-gcc-release",
+            "inherits": "test-base"
+        },
+        {
+            "name": "linux-x64-clang-debug",
+            "configurePreset": "linux-x64-clang-debug",
+            "inherits": "test-base"
+        },
+        {
+            "name": "linux-x64-clang-release",
+            "configurePreset": "linux-x64-clang-release",
+            "inherits": "test-base"
+        },
+        {
+            "name": "linux-x64-clang-asan",
+            "configurePreset": "linux-x64-clang-asan",
+            "inherits": "test-base"
+        },
+        {
+            "name": "linux-x64-clang-tsan",
+            "configurePreset": "linux-x64-clang-tsan",
+            "inherits": "test-base"
+        },
+        {
+            "name": "linux-x64-clang-fuzz",
+            "configurePreset": "linux-x64-clang-fuzz",
+            "filter": {
+                "include": {
+                    "label": "fuzz"
+                }
+            },
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "linux-x64-gcc-release-bench",
+            "configurePreset": "linux-x64-gcc-release",
+            "output": {
+                "outputOnFailure": true
+            },
+            "filter": {
+                "include": {
+                    "label": "bench"
+                }
+            }
+        },
+        {
+            "name": "linux-x64-clang-release-bench",
+            "configurePreset": "linux-x64-clang-release",
+            "output": {
+                "outputOnFailure": true
+            },
+            "filter": {
+                "include": {
+                    "label": "bench"
+                }
+            }
+        },
+        {
+            "name": "linux-x64-clang-libcxx-debug",
+            "configurePreset": "linux-x64-clang-libcxx-debug",
+            "inherits": "test-base"
+        },
+        {
+            "name": "linux-x64-clang-libcxx-release",
+            "configurePreset": "linux-x64-clang-libcxx-release",
+            "inherits": "test-base"
+        },
+        {
+            "name": "linux-x64-clang-libcxx-release-bench",
+            "configurePreset": "linux-x64-clang-libcxx-release",
+            "output": {
+                "outputOnFailure": true
+            },
+            "filter": {
+                "include": {
+                    "label": "bench"
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,22 @@
+{
+    "cmake.useCMakePresets": "always",
+    "cmake.copyCompileCommands": "${workspaceFolder}/compile_commands.json",
+    "cmake.configureOnOpen": false,
+
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "clangd.fallbackFlags": [
+        "-std=c++23",
+        "-I${workspaceFolder}/include"
+    ],
+    "clangd.arguments": [
+        "--header-insertion=never",
+        "--background-index"
+    ],
+
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "editor.formatOnSave": true,
+    "[cpp]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    }
+}

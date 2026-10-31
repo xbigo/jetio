@@ -1,0 +1,11 @@
+# Static analysis placeholder: enable with -DJETIO_ENABLE_CLANG_TIDY=ON.
+# Extend the check list as the code base grows.
+Checks: >
+  -*,
+  bugprone-*,
+  modernize-*,
+  performance-*,
+  readability-braces-around-statements,
+  -modernize-use-trailing-return-type
+HeaderFilterRegex: '.*/include/jetio/.*'
+WarningsAsErrors: ''

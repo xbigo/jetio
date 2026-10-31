@@ -66,3 +66,13 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# IDE / local
+!.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+CMakeUserPresets.json
+__pycache__/
+*.egg-info/
+.venv/

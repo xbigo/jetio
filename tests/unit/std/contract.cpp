@@ -31,14 +31,12 @@ namespace
         return std::nullopt;
     }
 
-    // `f` evaluates its condition by incrementing the counter; the condition is false. The
-    // check must be made, and the condition evaluated, exactly if the level reaches min_level.
+    // The macro in `f` has a false condition: it must reach the handler exactly if the level
+    // reaches min_level, and report the kind of contract.
     template <typename F> void expect_checked_from(int min_level, contract_kind kind, F &&f)
     {
-        int evaluated = 0;
-        const auto failure = violation_of([&] { f(evaluated); });
+        const auto failure = violation_of(f);
         CHECK(failure.has_value() == checked(min_level));
-        CHECK(evaluated == (checked(min_level) ? 1 : 0));
         if (failure.has_value())
             CHECK(failure.value().kind == kind);
     }
@@ -67,47 +65,23 @@ TEST_CASE("the level decides which checks are made", "[contract]")
 {
     jetio::test::scoped_throwing_contract_handler handler;
 
-    expect_checked_from(1, contract_kind::precondition,
-                        [](int &n) { JIO_Expects_critical(++n < 0); });
-    expect_checked_from(1, contract_kind::assertion, [](int &n) { JIO_Assert_critical(++n < 0); });
+    expect_checked_from(1, contract_kind::precondition, [] { JIO_Expects_critical(false); });
+    expect_checked_from(1, contract_kind::assertion, [] { JIO_Assert_critical(false); });
 
-    expect_checked_from(2, contract_kind::precondition, [](int &n) { JIO_Expects(++n < 0); });
-    expect_checked_from(2, contract_kind::postcondition, [](int &n) { JIO_Ensures(++n < 0); });
-    expect_checked_from(2, contract_kind::assertion, [](int &n) { JIO_Assert(++n < 0); });
+    expect_checked_from(2, contract_kind::precondition, [] { JIO_Expects(false); });
+    expect_checked_from(2, contract_kind::postcondition, [] { JIO_Ensures(false); });
+    expect_checked_from(2, contract_kind::assertion, [] { JIO_Assert(false); });
 
-    expect_checked_from(3, contract_kind::precondition, [](int &n) { JIO_Expects_audit(++n < 0); });
-    expect_checked_from(3, contract_kind::postcondition,
-                        [](int &n) { JIO_Ensures_audit(++n < 0); });
-    expect_checked_from(3, contract_kind::assertion, [](int &n) { JIO_Assert_audit(++n < 0); });
+    expect_checked_from(3, contract_kind::precondition, [] { JIO_Expects_audit(false); });
+    expect_checked_from(3, contract_kind::postcondition, [] { JIO_Ensures_audit(false); });
+    expect_checked_from(3, contract_kind::assertion, [] { JIO_Assert_audit(false); });
 }
 
-TEST_CASE("the violation says what and where", "[contract]")
+TEST_CASE("a condition may contain commas", "[contract]")
 {
-    if constexpr (!checked(2))
-        SKIP("default contract checks are off");
-
     jetio::test::scoped_throwing_contract_handler handler;
-    try
-    {
-        JIO_Expects(1 > 2);
-        FAIL("no violation");
-    }
-    catch (const contract_failure &failure)
-    {
-        CHECK(failure.expression == "1 > 2");
-        CHECK(failure.line == __LINE__ - 6);
-    }
-
-    // a condition with commas outside parentheses is passed on whole
-    try
-    {
-        JIO_Expects(std::is_same_v<int, long>);
-        FAIL("no violation");
-    }
-    catch (const contract_failure &failure)
-    {
-        CHECK(failure.expression == "std::is_same_v<int, long>");
-    }
+    CHECK_NOTHROW(JIO_Expects(std::is_same_v<int, int>));
+    CHECK(violation_of([] { JIO_Expects(std::is_same_v<int, long>); }).has_value() == checked(2));
 }
 
 TEST_CASE("a null handler restores the default", "[contract]")

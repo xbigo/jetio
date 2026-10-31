@@ -65,8 +65,8 @@ namespace jetio
     class fill_device : public detail::pseudo_common
     {
     public:
-        /// @pre pattern is not empty
-        /// @pre the memory of the pattern outlives the device
+        /// @pre !pattern.empty()
+        /// @pre the memory of pattern outlives the device
         explicit fill_device(const_buffer pattern) : m_pattern(pattern)
         {
             JIO_Expects_critical(!pattern.empty());

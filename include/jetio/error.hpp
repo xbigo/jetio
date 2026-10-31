@@ -45,7 +45,7 @@ namespace jetio
     }
 
     /// Reports a failure.
-    /// @pre e is an error (not the success value)
+    /// @pre e != error_code()
     /// @throws io_error carrying e if ec is null
     inline void set_error_or_throw(error_code_ptr ec, error_code e)
     {

@@ -92,7 +92,7 @@ namespace jetio
     /// contract_violation_handler.
     /// @param handler the new handler; nullptr restores the default one
     /// @return the previous handler
-    /// @post the handler is never null
+    /// @post the stored handler != nullptr
     inline contract_violation_handler
     set_contract_violation_handler(contract_violation_handler handler) noexcept
     {

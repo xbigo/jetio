@@ -62,7 +62,7 @@ namespace jetio
     /// number of bytes read.
     /// @return the part of buf that was filled, always a prefix of buf. It is shorter than buf
     ///         only at the end of the data or after an error.
-    /// @post the result is a prefix of buf
+    /// @post result.data() == buf.data() && result.size() <= buf.size()
     template <typename Device>
         requires requires(Device &&device, mutable_buffer buf, error_code_ptr ec) {
             { device.read(buf, ec) } -> std::convertible_to<mutable_buffer>;
@@ -86,7 +86,8 @@ namespace jetio
     /// written.
     /// @return the part of buf that was not written, always a suffix of buf. It is not empty
     ///         only after an error.
-    /// @post the result is a suffix of buf
+    /// @post result.data() + result.size() == buf.data() + buf.size() && result.size() <=
+    /// buf.size()
     template <typename Device>
         requires requires(Device &&device, const_buffer buf, error_code_ptr ec) {
             { device.write(buf, ec) } -> std::convertible_to<const_buffer>;
@@ -241,7 +242,7 @@ namespace jetio
 
     /// Moves the current offset forward to `off`. Devices that cannot go back (streams) provide
     /// only this; every random access device gets it through seek.
-    /// @pre `off` is not before the current offset (audit)
+    /// @pre off >= offset(device) (audit)
     /// @return the offset afterwards, see seek
     template <typename Device>
         requires detail::has_seek_forward<Device> ||
@@ -296,7 +297,7 @@ namespace jetio
     /// @pre is_valid_range(rng)
     /// @return the view; when the end of `rng` is unknown_offset it extends to the end of the
     ///         device. Reports errc::invalid_argument if the range lies beyond the device.
-    /// @post unless an error occurred, the view has range_size(rng) bytes (end known)
+    /// @post has_error(ec) || rng.end == unknown_offset || address(view).size() == range_size(rng)
     template <typename Device>
         requires requires(Device &&device, offset64_range rng, error_code_ptr ec) {
             { device.view_rd(rng, ec) } -> read_view;
@@ -322,7 +323,7 @@ namespace jetio
     /// device grows to fit the end of `rng` if it can.
     /// @pre is_valid_range(rng)
     /// @return the view, see view_rd
-    /// @post unless an error occurred, the view has range_size(rng) bytes (end known)
+    /// @post has_error(ec) || rng.end == unknown_offset || address(view).size() == range_size(rng)
     template <typename Device>
         requires requires(Device &&device, offset64_range rng, error_code_ptr ec) {
             { device.view_wr(rng, ec) } -> write_view;

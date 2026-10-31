@@ -59,6 +59,8 @@ Use the same level in the whole program. Different levels in different translati
 
 ## Violation handling
 
+A violation carries its context: the kind, the text of the expression and the source location. That context is what makes a failure fixable, so it is kept unless the size or the speed of the checks proves unacceptable; then a build option can drop it, as in libc++, which is why the checks are only a few macros.
+
 A violated contract means the program is in an undefined state, so there is no way to go on, and no handler may return. `handle_contract_violation` calls the handler set by `set_contract_violation_handler`; if the handler returns, the program aborts. The default handler prints the location and the expression to stderr and aborts.
 
 A handler may throw. That exists for white-box tests, of the facility itself and of functions with preconditions, where the test must get past the violation: their handler throws and the test catches the exception. Production code should terminate.

@@ -1,7 +1,11 @@
 #include <jetio/std/nt_string_view.hpp>
+#include <jetio/std/nt_string_view_io.hpp>
 
 #include <array>
+#include <format>
 #include <functional>
+#include <ranges>
+#include <sstream>
 #include <string>
 #include <string_view>
 
@@ -66,7 +70,8 @@ TEST_CASE("the guarantee of a type", "[nt_string_view][concepts]")
     static_assert(nt_string_view_like<legacy_string>); // through the ADL get_c_str
     static_assert(!nd_string_view_like<liar>);         // withdrawn by specialization
     static_assert(!nt_string_view_like<const char *>);
-    static_assert(nt_string_view_like<nt_wstring_view> && nt_string_view_like<std::wstring>);
+    static_assert(nt_string_view_like<basic_nt_string_view<wchar_t>> &&
+                  nt_string_view_like<std::wstring>);
     static_assert(std::same_as<char_type_t<std::u8string>, char8_t>);
 }
 
@@ -157,16 +162,22 @@ TEST_CASE("construction checks the invariant where it can be wrong", "[nt_string
     CHECK_THROWS_AS(nt_string_view(breaks_its_promise{}), contract_failure);
 }
 
-TEST_CASE("indexing may reach the terminator", "[nt_string_view]")
+TEST_CASE("element access and the terminator", "[nt_string_view]")
 {
     const std::string s = "abc";
     const nt_string_view view = s;
     CHECK(view[0] == 'a');
-    CHECK(view[3] == '\0');
-    if constexpr (contract_level >= 2)
+    CHECK(view[3] == '\0'); // pos == size() is the terminator
+    CHECK(view.front() == 'a');
+    CHECK(view.back() == 'c');
+    CHECK(view.data() == view.c_str());
+
+    if constexpr (contract_level >= 1)
     {
         test::scoped_throwing_contract_handler handler;
         CHECK_THROWS_AS(view[4], contract_failure);
+        CHECK_THROWS_AS(nt_string_view().front(), contract_failure);
+        CHECK_THROWS_AS(nt_string_view().back(), contract_failure);
     }
 }
 
@@ -215,4 +226,76 @@ TEST_CASE("equal views hash equally", "[nt_string_view]")
     const nt_string_view view = a;
     CHECK(std::hash<nt_string_view>{}(view) == std::hash<std::string_view>{}("abc"));
     CHECK(std::hash<nt_string_view>{}(nt_string_view()) == std::hash<std::string_view>{}(""));
+}
+
+TEST_CASE("substr and rm_prefix return new views", "[nt_string_view]")
+{
+    const std::string s = "abcdef";
+    const nt_string_view view = s;
+
+    const nt_string_view without = rm_prefix(view, 2);
+    CHECK(without == std::string_view("cdef"));
+    CHECK(without.c_str()[without.size()] == '\0');
+    CHECK(view == std::string_view("abcdef")); // the original is unchanged
+
+    const nt_string_view rest = substr(without, 3);
+    CHECK(rest == std::string_view("f"));
+    CHECK(rest.c_str() == s.c_str() + 5);
+    CHECK(substr(view) == view);
+    CHECK(substr(view, view.size()).empty());
+    CHECK(substr(view, view.size()).c_str()[0] == '\0');
+    CHECK(rm_prefix(view, 0) == substr(view, 0));
+
+    static_assert(std::same_as<decltype(rm_prefix(view, 1)), nt_string_view>);
+    static_assert(std::same_as<decltype(substr(view, 1)), nt_string_view>);
+
+    if constexpr (contract_level >= 1)
+    {
+        test::scoped_throwing_contract_handler handler;
+        CHECK_THROWS_AS(rm_prefix(view, 7), contract_failure);
+        CHECK_THROWS_AS(substr(view, 7), contract_failure);
+    }
+}
+
+TEST_CASE("swap", "[nt_string_view]")
+{
+    const std::string a = "a";
+    const std::string b = "bb";
+    nt_string_view va = a;
+    nt_string_view vb = b;
+    va.swap(vb);
+    CHECK(va == b);
+    CHECK(vb == a);
+}
+
+TEST_CASE("iterators", "[nt_string_view]")
+{
+    const std::string s = "abc";
+    const nt_string_view view = s;
+    CHECK(std::string(view.begin(), view.end()) == "abc");
+    CHECK(std::string(view.rbegin(), view.rend()) == "cba");
+    CHECK(view.end() - view.begin() == 3);
+}
+
+TEST_CASE("it is a view and a borrowed contiguous range", "[nt_string_view][concepts]")
+{
+    static_assert(std::ranges::contiguous_range<nt_string_view>);
+    static_assert(std::ranges::sized_range<nt_string_view>);
+    static_assert(std::ranges::view<nt_string_view>);
+    static_assert(std::ranges::borrowed_range<nt_string_view>);
+    static_assert(std::is_trivially_copyable_v<nt_string_view>);
+    static_assert(std::constructible_from<std::string_view, nt_string_view>);
+}
+
+TEST_CASE("output and formatting", "[nt_string_view]")
+{
+    const std::string s("a\0b", 3); // characters before the terminator may be CharT()
+    const nt_string_view view = s;
+    std::ostringstream out;
+    out << view;
+    CHECK(out.str() == s);
+
+    CHECK(std::format("[{}]", view) == std::string("[a\0b]", 5));
+    CHECK(std::format("{}", view).size() == 3);
+    CHECK(std::format("[{:>5}]", nt_string_view("xy", src_capacity(3))) == "[   xy]");
 }

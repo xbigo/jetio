@@ -133,6 +133,15 @@ namespace jetio
         }
     } // namespace detail
 
+    namespace detail
+    {
+        /// What a function taking a string may be given: anything that converts to the string
+        /// view, except a pointer or an array. Those do not enter as strings implicitly.
+        template <typename U, typename StringView>
+        concept string_view_argument =
+            !std::is_pointer_v<std::decay_t<U>> && std::convertible_to<const U &, StringView>;
+    } // namespace detail
+
     /// The character type of a string-like type: the pointee of its c_str(), else value_type.
     template <typename T>
         requires detail::has_char_type<std::remove_cvref_t<T>>

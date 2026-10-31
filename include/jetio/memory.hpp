@@ -163,21 +163,21 @@ namespace jetio
         size64_t offset(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
-            return pos();
+            return pos_();
         }
 
         /// @return true if the offset is at or beyond the end of the data
         bool is_eof(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
-            return pos() >= data_size();
+            return pos_() >= data_size_();
         }
 
         /// @return the size of the data
         size64_t size(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
-            return data_size();
+            return data_size_();
         }
 
         /// Moves the offset; it may be moved beyond the end.
@@ -189,11 +189,11 @@ namespace jetio
             if (!in_size_t_range(off))
             {
                 set_error_or_throw(ec, std::errc::value_too_large);
-                return pos();
+                return pos_();
             }
             clear_error(ec);
             detail::set_represent_pos(m_rep, to_size_t(off));
-            JIO_Ensures(pos() == off);
+            JIO_Ensures(pos_() == off);
             return off;
         }
 
@@ -201,29 +201,29 @@ namespace jetio
         /// @pre off >= offset()
         size64_t seek_forward(size64_t off, error_code_ptr ec = nullptr)
         {
-            JIO_Expects(off >= pos());
+            JIO_Expects(off >= pos_());
             return seek(off, ec);
         }
 
         /// Copies the data at the offset into buf; never fails.
         /// @return the part of buf that was filled
-        /// @post the result has min(buf.size(), data left) bytes, so it is shorter than buf only
-        ///       at the end of the data
-        /// @post the offset advanced by the size of the result
+        /// @post result.size() == min(buf.size(), offset_before < size() ? size() - offset_before :
+        /// 0)
+        /// @post offset() == offset_before + result.size()
         mutable_buffer read(mutable_buffer buf, error_code_ptr ec = nullptr)
         {
             clear_error(ec);
-            const std::size_t old_pos = pos();
-            const std::size_t old_size = data_size();
+            const std::size_t old_pos = pos_();
+            const std::size_t old_size = data_size_();
             const std::size_t count =
                 std::min(old_pos < old_size ? old_size - old_pos : std::size_t{0}, buf.size());
             if (count != 0)
-                std::copy_n(read_data() + old_pos, count, buf.begin());
+                std::copy_n(read_data_() + old_pos, count, buf.begin());
             detail::set_represent_pos(m_rep, old_pos + count);
 
             const mutable_buffer result = buf.first(count);
-            JIO_Ensures(pos() == old_pos + result.size());
-            JIO_Ensures(result.size() == buf.size() || pos() >= data_size());
+            JIO_Ensures(pos_() == old_pos + result.size());
+            JIO_Ensures(result.size() == buf.size() || pos_() >= data_size_());
             return result;
         }
 
@@ -232,11 +232,11 @@ namespace jetio
         /// @return the view. The end of `h` is the end of the data if it is unknown_offset.
         ///         Reports errc::invalid_argument, and returns an empty view, if `h` lies
         ///         beyond the end of the data.
-        /// @post on success the view has the size of the range
+        /// @post on success view.address().size() == range_size(h) (end known)
         buffer_rd_view view_rd(offset64_range h, error_code_ptr ec = nullptr) const
         {
             JIO_Expects_critical(is_valid_range(h));
-            const std::size_t size = data_size();
+            const std::size_t size = data_size_();
             const offset64_t end = h.end == unknown_offset ? static_cast<offset64_t>(size) : h.end;
             if (std::cmp_greater(end, size) || h.begin > end)
             {
@@ -244,7 +244,7 @@ namespace jetio
                 return buffer_rd_view();
             }
             clear_error(ec);
-            const buffer_rd_view result(const_buffer(read_data() + offset_to_size_t(h.begin),
+            const buffer_rd_view result(const_buffer(read_data_() + offset_to_size_t(h.begin),
                                                      offset_to_size_t(end - h.begin)));
             JIO_Ensures(result.address().size() == static_cast<size64_t>(end - h.begin));
             return result;
@@ -257,7 +257,7 @@ namespace jetio
         ///         that fits. Reports errc::value_too_large if the end of the write does not
         ///         fit in std::size_t, and errc::not_enough_memory if growing failed, both
         ///         without having written anything.
-        /// @post the offset advanced by the number of bytes written
+        /// @post offset() == offset_before + (buf.size() - result.size())
         const_buffer write(const_buffer buf, error_code_ptr ec = nullptr)
             requires write_represent<Represent>
         {
@@ -267,8 +267,8 @@ namespace jetio
                 return buf;
             }
 
-            const std::size_t old_pos = pos();
-            const std::size_t old_size = data_size();
+            const std::size_t old_pos = pos_();
+            const std::size_t old_size = data_size_();
             if (buf.size() > std::numeric_limits<std::size_t>::max() - old_pos)
             {
                 set_error_or_throw(ec, std::errc::value_too_large);
@@ -281,7 +281,7 @@ namespace jetio
             {
                 if constexpr (truncatable_represent<Represent>)
                 {
-                    if (!resize_data(new_pos, ec))
+                    if (!resize_data_(new_pos, ec))
                         return buf;
                 }
                 else
@@ -291,7 +291,7 @@ namespace jetio
             }
 
             if (writable != 0)
-                std::copy_n(buf.begin(), writable, write_data() + old_pos);
+                std::copy_n(buf.begin(), writable, write_data_() + old_pos);
             detail::set_represent_pos(m_rep, old_pos + writable);
 
             const const_buffer result = buf.last(buf.size() - writable);
@@ -299,7 +299,7 @@ namespace jetio
                 clear_error(ec);
             else
                 set_error_or_throw(ec, std::errc::no_space_on_device);
-            JIO_Ensures(pos() == old_pos + (buf.size() - result.size()));
+            JIO_Ensures(pos_() == old_pos + (buf.size() - result.size()));
             return result;
         }
 
@@ -310,12 +310,12 @@ namespace jetio
         ///         Reports errc::invalid_argument if the begin of `h` is beyond the end of the
         ///         data, errc::no_space_on_device if the data cannot grow, errc::value_too_large
         ///         and errc::not_enough_memory like write. An empty view is returned on error.
-        /// @post on success the view has the size of the range
+        /// @post on success view.address().size() == range_size(h) (end known)
         buffer_wr_view view_wr(offset64_range h, error_code_ptr ec = nullptr)
             requires write_represent<Represent>
         {
             JIO_Expects_critical(is_valid_range(h));
-            const std::size_t size = data_size();
+            const std::size_t size = data_size_();
             const offset64_t end = h.end == unknown_offset ? static_cast<offset64_t>(size) : h.end;
             if (h.begin > end)
             {
@@ -331,7 +331,7 @@ namespace jetio
             {
                 if constexpr (truncatable_represent<Represent>)
                 {
-                    if (!resize_data(offset_to_size_t(end), ec))
+                    if (!resize_data_(offset_to_size_t(end), ec))
                         return buffer_wr_view();
                 }
                 else
@@ -341,7 +341,7 @@ namespace jetio
                 }
             }
             clear_error(ec);
-            const buffer_wr_view result(mutable_buffer(write_data() + offset_to_size_t(h.begin),
+            const buffer_wr_view result(mutable_buffer(write_data_() + offset_to_size_t(h.begin),
                                                        offset_to_size_t(end - h.begin)));
             JIO_Ensures(result.address().size() == static_cast<size64_t>(end - h.begin));
             return result;
@@ -365,12 +365,12 @@ namespace jetio
             if (!in_size_t_range(new_size))
             {
                 set_error_or_throw(ec, std::errc::value_too_large);
-                return data_size();
+                return data_size_();
             }
-            if (!resize_data(to_size_t(new_size), ec))
-                return data_size();
+            if (!resize_data_(to_size_t(new_size), ec))
+                return data_size_();
             clear_error(ec);
-            JIO_Ensures(data_size() == new_size);
+            JIO_Ensures(data_size_() == new_size);
             return new_size;
         }
 
@@ -379,19 +379,19 @@ namespace jetio
         const Represent &underlying() const noexcept { return m_rep; }
 
     private:
-        std::size_t pos() const noexcept { return detail::represent_pos(m_rep); }
+        std::size_t pos_() const noexcept { return detail::represent_pos(m_rep); }
 
-        std::size_t data_size() const noexcept
+        std::size_t data_size_() const noexcept
         {
             return static_cast<std::size_t>(std::ranges::size(detail::represent_data(m_rep)));
         }
 
-        const std::byte *read_data() const noexcept
+        const std::byte *read_data_() const noexcept
         {
             return std::ranges::data(detail::represent_data(m_rep));
         }
 
-        std::byte *write_data() noexcept
+        std::byte *write_data_() noexcept
             requires write_represent<Represent>
         {
             return std::ranges::data(detail::represent_data(m_rep));
@@ -400,7 +400,7 @@ namespace jetio
         // The one place that turns exceptions into errors: containers report failure to grow by
         // throwing, the device reports it as described in error.hpp. A failed resize leaves the
         // data unchanged.
-        bool resize_data(std::size_t new_size, error_code_ptr ec)
+        bool resize_data_(std::size_t new_size, error_code_ptr ec)
             requires truncatable_represent<Represent>
         {
             try

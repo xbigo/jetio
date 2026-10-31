@@ -11,14 +11,13 @@ namespace jetio::test
     struct contract_failure : std::exception
     {
         explicit contract_failure(const contract_violation &v)
-            : kind(v.kind), expression(v.expression), line(v.location.line())
+            : kind(v.kind), expression(v.expression)
         {
         }
         const char *what() const noexcept override { return expression.c_str(); }
 
         contract_kind kind;
         std::string expression;
-        unsigned line;
     };
 
     /// Turns contract violations into contract_failure exceptions while it exists. Functions

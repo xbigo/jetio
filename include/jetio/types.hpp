@@ -69,14 +69,14 @@ namespace jetio
         return static_cast<std::size_t>(n);
     }
 
-    /// @pre in_size_t_range(n), which includes n >= 0
+    /// @pre in_size_t_range(n)
     constexpr std::size_t offset_to_size_t(offset64_t n)
     {
         JIO_Expects_critical(in_size_t_range(n));
         return static_cast<std::size_t>(n);
     }
 
-    /// @pre n is representable as std::ptrdiff_t
+    /// @pre std::in_range<std::ptrdiff_t>(n)
     constexpr std::ptrdiff_t to_ptrdiff_t(offset64_t n)
     {
         JIO_Expects_critical(std::in_range<std::ptrdiff_t>(n));

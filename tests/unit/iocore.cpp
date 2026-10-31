@@ -15,17 +15,17 @@ namespace
     {
         mutable_buffer read(mutable_buffer buf, error_code_ptr) { return buf.last(buf.size() / 2); }
         const_buffer write(const_buffer buf, error_code_ptr) { return buf.first(buf.size() / 2); }
-        buffer_rd_view view_rd(long_offset_range, error_code_ptr) { return {}; }
-        buffer_wr_view view_wr(long_offset_range, error_code_ptr) { return {}; }
-        long_size_t size(error_code_ptr) { return 0; }
+        buffer_rd_view view_rd(offset64_range, error_code_ptr) { return {}; }
+        buffer_wr_view view_wr(offset64_range, error_code_ptr) { return {}; }
+        size64_t size(error_code_ptr) { return 0; }
     };
 
     // Only the operations of a plain stream.
     struct stream_device
     {
-        long_size_t position = 0;
-        long_size_t offset(error_code_ptr) const { return position; }
-        long_size_t seek_forward(long_size_t off, error_code_ptr)
+        size64_t position = 0;
+        size64_t offset(error_code_ptr) const { return position; }
+        size64_t seek_forward(size64_t off, error_code_ptr)
         {
             position = off;
             return position;

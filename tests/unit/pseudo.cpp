@@ -49,7 +49,7 @@ TEST_CASE("fill_device repeats its pattern", "[pseudo]")
     CHECK(out == std::vector<std::byte>{std::byte{3}, std::byte{1}});
 
     // any offset, any buffer size
-    for (long_size_t start = 0; start < 7; ++start)
+    for (size64_t start = 0; start < 7; ++start)
     {
         for (std::size_t n = 0; n < 10; ++n)
         {

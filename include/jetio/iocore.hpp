@@ -16,7 +16,7 @@
 //   - `ec` is the error_code_ptr of error.hpp. Failures a caller cannot check beforehand are
 //     reported through it (or io_error if it is null). Violating a documented precondition is
 //     a contract violation, see contract.hpp.
-//   - Offsets and sizes are in bytes and 64 bit (long_size_t). Seeking beyond the end is
+//   - Offsets and sizes are in bytes and 64 bit (size64_t). Seeking beyond the end is
 //     allowed; reading there yields no data, writing there extends the device if it can grow.
 //   - Exception safety: a device is always left valid, destructible and usable. Individual
 //     operations document anything stronger. An operation that reports an error has made
@@ -142,16 +142,16 @@ namespace jetio
     /// zero. The offset is not changed.
     /// @return the size of the device afterwards
     template <typename Device>
-        requires requires(Device &&device, long_size_t size, error_code_ptr ec) {
-            { device.truncate(size, ec) } -> std::convertible_to<long_size_t>;
+        requires requires(Device &&device, size64_t size, error_code_ptr ec) {
+            { device.truncate(size, ec) } -> std::convertible_to<size64_t>;
         }
-    long_size_t truncate(Device &&device, long_size_t size, error_code_ptr ec = nullptr)
+    size64_t truncate(Device &&device, size64_t size, error_code_ptr ec = nullptr)
     {
         return device.truncate(size, ec);
     }
     template <typename Device>
-    concept truncater = requires(Device &&device, long_size_t size, error_code_ptr ec) {
-        { jetio::truncate(device, size, ec) } -> std::convertible_to<long_size_t>;
+    concept truncater = requires(Device &&device, size64_t size, error_code_ptr ec) {
+        { jetio::truncate(device, size, ec) } -> std::convertible_to<size64_t>;
     };
 
     // ---------------------------------------------------------------------------------------
@@ -161,15 +161,15 @@ namespace jetio
     /// @return the size of the device, or unknown_size if it is not known
     template <typename Device>
         requires requires(Device &&device, error_code_ptr ec) {
-            { device.size(ec) } -> std::convertible_to<long_size_t>;
+            { device.size(ec) } -> std::convertible_to<size64_t>;
         }
-    long_size_t size(Device &&device, error_code_ptr ec = nullptr)
+    size64_t size(Device &&device, error_code_ptr ec = nullptr)
     {
         return device.size(ec);
     }
     template <typename Device>
     concept sizer = requires(Device &&device, error_code_ptr ec) {
-        { jetio::size(device, ec) } -> std::convertible_to<long_size_t>;
+        { jetio::size(device, ec) } -> std::convertible_to<size64_t>;
     };
 
     // ---------------------------------------------------------------------------------------
@@ -179,15 +179,15 @@ namespace jetio
     /// @return the current offset
     template <typename Device>
         requires requires(Device &&device, error_code_ptr ec) {
-            { device.offset(ec) } -> std::convertible_to<long_size_t>;
+            { device.offset(ec) } -> std::convertible_to<size64_t>;
         }
-    long_size_t offset(Device &&device, error_code_ptr ec = nullptr)
+    size64_t offset(Device &&device, error_code_ptr ec = nullptr)
     {
         return device.offset(ec);
     }
     template <typename Device>
     concept sequence = requires(Device &&device, error_code_ptr ec) {
-        { jetio::offset(device, ec) } -> std::convertible_to<long_size_t>;
+        { jetio::offset(device, ec) } -> std::convertible_to<size64_t>;
     };
 
     // ---------------------------------------------------------------------------------------
@@ -199,16 +199,16 @@ namespace jetio
     ///         example empty_device, which has no offset but 0). On an error it is the unchanged
     ///         offset.
     template <typename Device>
-        requires requires(Device &&device, long_size_t off, error_code_ptr ec) {
-            { device.seek(off, ec) } -> std::convertible_to<long_size_t>;
+        requires requires(Device &&device, size64_t off, error_code_ptr ec) {
+            { device.seek(off, ec) } -> std::convertible_to<size64_t>;
         }
-    long_size_t seek(Device &&device, long_size_t off, error_code_ptr ec = nullptr)
+    size64_t seek(Device &&device, size64_t off, error_code_ptr ec = nullptr)
     {
         return device.seek(off, ec);
     }
     template <typename Device>
-    concept random_access = requires(Device &&device, long_size_t off, error_code_ptr ec) {
-        { jetio::seek(device, off, ec) } -> std::convertible_to<long_size_t>;
+    concept random_access = requires(Device &&device, size64_t off, error_code_ptr ec) {
+        { jetio::seek(device, off, ec) } -> std::convertible_to<size64_t>;
     } && sequence<Device>;
 
     // ---------------------------------------------------------------------------------------
@@ -218,18 +218,18 @@ namespace jetio
     namespace detail
     {
         template <typename Device>
-        concept has_seek_forward = requires(Device &&device, long_size_t off, error_code_ptr ec) {
-            { device.seek_forward(off, ec) } -> std::convertible_to<long_size_t>;
+        concept has_seek_forward = requires(Device &&device, size64_t off, error_code_ptr ec) {
+            { device.seek_forward(off, ec) } -> std::convertible_to<size64_t>;
         };
 
         /// Used in contracts only: true if `off` is not before the current offset (or the
         /// current offset cannot be obtained).
-        template <typename Device> bool is_not_before_offset(Device &device, long_size_t off)
+        template <typename Device> bool is_not_before_offset(Device &device, size64_t off)
         {
             if constexpr (sequence<Device &>)
             {
                 error_code ec;
-                const long_size_t current = jetio::offset(device, &ec);
+                const size64_t current = jetio::offset(device, &ec);
                 return ec || off >= current;
             }
             else
@@ -245,10 +245,10 @@ namespace jetio
     /// @return the offset afterwards, see seek
     template <typename Device>
         requires detail::has_seek_forward<Device> ||
-                 requires(Device &&device, long_size_t off, error_code_ptr ec) {
-                     { device.seek(off, ec) } -> std::convertible_to<long_size_t>;
+                 requires(Device &&device, size64_t off, error_code_ptr ec) {
+                     { device.seek(off, ec) } -> std::convertible_to<size64_t>;
                  }
-    long_size_t seek_forward(Device &&device, long_size_t off, error_code_ptr ec = nullptr)
+    size64_t seek_forward(Device &&device, size64_t off, error_code_ptr ec = nullptr)
     {
         JIO_Expects_audit(detail::is_not_before_offset(device, off));
         if constexpr (detail::has_seek_forward<Device>)
@@ -257,8 +257,8 @@ namespace jetio
             return device.seek(off, ec);
     }
     template <typename Device>
-    concept forward_access = requires(Device &&device, long_size_t off, error_code_ptr ec) {
-        { jetio::seek_forward(device, off, ec) } -> std::convertible_to<long_size_t>;
+    concept forward_access = requires(Device &&device, size64_t off, error_code_ptr ec) {
+        { jetio::seek_forward(device, off, ec) } -> std::convertible_to<size64_t>;
     } && sequence<Device>;
 
     // ---------------------------------------------------------------------------------------
@@ -298,10 +298,10 @@ namespace jetio
     ///         device. Reports errc::invalid_argument if the range lies beyond the device.
     /// @post unless an error occurred, the view has range_size(rng) bytes (end known)
     template <typename Device>
-        requires requires(Device &&device, long_offset_range rng, error_code_ptr ec) {
+        requires requires(Device &&device, offset64_range rng, error_code_ptr ec) {
             { device.view_rd(rng, ec) } -> read_view;
         }
-    decltype(auto) view_rd(Device &&device, long_offset_range rng, error_code_ptr ec = nullptr)
+    decltype(auto) view_rd(Device &&device, offset64_range rng, error_code_ptr ec = nullptr)
     {
         JIO_Expects(is_valid_range(rng));
         decltype(auto) view = device.view_rd(rng, ec);
@@ -310,7 +310,7 @@ namespace jetio
         return view;
     }
     template <typename Device>
-    concept read_map = requires(Device &&device, long_offset_range rng, error_code_ptr ec) {
+    concept read_map = requires(Device &&device, offset64_range rng, error_code_ptr ec) {
         { jetio::view_rd(device, rng, ec) } -> read_view;
     } && sizer<Device>;
 
@@ -324,10 +324,10 @@ namespace jetio
     /// @return the view, see view_rd
     /// @post unless an error occurred, the view has range_size(rng) bytes (end known)
     template <typename Device>
-        requires requires(Device &&device, long_offset_range rng, error_code_ptr ec) {
+        requires requires(Device &&device, offset64_range rng, error_code_ptr ec) {
             { device.view_wr(rng, ec) } -> write_view;
         }
-    decltype(auto) view_wr(Device &&device, long_offset_range rng, error_code_ptr ec = nullptr)
+    decltype(auto) view_wr(Device &&device, offset64_range rng, error_code_ptr ec = nullptr)
     {
         JIO_Expects(is_valid_range(rng));
         decltype(auto) view = device.view_wr(rng, ec);
@@ -336,7 +336,7 @@ namespace jetio
         return view;
     }
     template <typename Device>
-    concept write_map = requires(Device &&device, long_offset_range rng, error_code_ptr ec) {
+    concept write_map = requires(Device &&device, offset64_range rng, error_code_ptr ec) {
         { jetio::view_wr(device, rng, ec) } -> write_view;
     } && sizer<Device>;
 

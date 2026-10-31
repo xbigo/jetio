@@ -160,7 +160,7 @@ namespace jetio
         }
 
         /// @return the current offset
-        long_size_t offset(error_code_ptr ec = nullptr) const noexcept
+        size64_t offset(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
             return pos();
@@ -174,7 +174,7 @@ namespace jetio
         }
 
         /// @return the size of the data
-        long_size_t size(error_code_ptr ec = nullptr) const noexcept
+        size64_t size(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
             return data_size();
@@ -184,7 +184,7 @@ namespace jetio
         /// @return `off`. Reports errc::value_too_large, and returns the unchanged offset, if
         ///         `off` does not fit in std::size_t.
         /// @post on success offset() == off
-        long_size_t seek(long_size_t off, error_code_ptr ec = nullptr)
+        size64_t seek(size64_t off, error_code_ptr ec = nullptr)
         {
             if (!in_size_t_range(off))
             {
@@ -199,7 +199,7 @@ namespace jetio
 
         /// Moves the offset forward, see seek.
         /// @pre off >= offset()
-        long_size_t seek_forward(long_size_t off, error_code_ptr ec = nullptr)
+        size64_t seek_forward(size64_t off, error_code_ptr ec = nullptr)
         {
             JIO_Expects(off >= pos());
             return seek(off, ec);
@@ -233,12 +233,11 @@ namespace jetio
         ///         Reports errc::invalid_argument, and returns an empty view, if `h` lies
         ///         beyond the end of the data.
         /// @post on success the view has the size of the range
-        buffer_rd_view view_rd(long_offset_range h, error_code_ptr ec = nullptr) const
+        buffer_rd_view view_rd(offset64_range h, error_code_ptr ec = nullptr) const
         {
             JIO_Expects_critical(is_valid_range(h));
             const std::size_t size = data_size();
-            const long_offset_t end =
-                h.end == unknown_offset ? static_cast<long_offset_t>(size) : h.end;
+            const offset64_t end = h.end == unknown_offset ? static_cast<offset64_t>(size) : h.end;
             if (std::cmp_greater(end, size) || h.begin > end)
             {
                 set_error_or_throw(ec, std::errc::invalid_argument);
@@ -247,7 +246,7 @@ namespace jetio
             clear_error(ec);
             const buffer_rd_view result(const_buffer(read_data() + offset_to_size_t(h.begin),
                                                      offset_to_size_t(end - h.begin)));
-            JIO_Ensures(result.address().size() == static_cast<long_size_t>(end - h.begin));
+            JIO_Ensures(result.address().size() == static_cast<size64_t>(end - h.begin));
             return result;
         }
 
@@ -312,13 +311,12 @@ namespace jetio
         ///         data, errc::no_space_on_device if the data cannot grow, errc::value_too_large
         ///         and errc::not_enough_memory like write. An empty view is returned on error.
         /// @post on success the view has the size of the range
-        buffer_wr_view view_wr(long_offset_range h, error_code_ptr ec = nullptr)
+        buffer_wr_view view_wr(offset64_range h, error_code_ptr ec = nullptr)
             requires write_represent<Represent>
         {
             JIO_Expects_critical(is_valid_range(h));
             const std::size_t size = data_size();
-            const long_offset_t end =
-                h.end == unknown_offset ? static_cast<long_offset_t>(size) : h.end;
+            const offset64_t end = h.end == unknown_offset ? static_cast<offset64_t>(size) : h.end;
             if (h.begin > end)
             {
                 set_error_or_throw(ec, std::errc::invalid_argument);
@@ -345,7 +343,7 @@ namespace jetio
             clear_error(ec);
             const buffer_wr_view result(mutable_buffer(write_data() + offset_to_size_t(h.begin),
                                                        offset_to_size_t(end - h.begin)));
-            JIO_Ensures(result.address().size() == static_cast<long_size_t>(end - h.begin));
+            JIO_Ensures(result.address().size() == static_cast<size64_t>(end - h.begin));
             return result;
         }
 
@@ -361,7 +359,7 @@ namespace jetio
         ///         std::size_t, errc::not_enough_memory if growing failed; the size is
         ///         unchanged then, and the current size is returned.
         /// @post on success size() == new_size
-        long_size_t truncate(long_size_t new_size, error_code_ptr ec = nullptr)
+        size64_t truncate(size64_t new_size, error_code_ptr ec = nullptr)
             requires truncatable_represent<Represent>
         {
             if (!in_size_t_range(new_size))

@@ -367,7 +367,7 @@ TEST_CASE("an end that does not fit in size_t is an error", "[memory]")
 TEST_CASE("a size beyond the maximum of the container is an error", "[memory]")
 {
     memory_device<> device(vector_buffer_represent{bytes(3), 1});
-    const long_size_t too_large = long_size_t{1} << 63;
+    const size64_t too_large = size64_t{1} << 63;
     error_code ec;
 
     CHECK(truncate(device, too_large, &ec) == 3);

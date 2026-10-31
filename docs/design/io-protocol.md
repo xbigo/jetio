@@ -21,7 +21,7 @@ A device is any type with some of the member functions below. Free functions of 
 
 ## Conventions
 
-- Sizes and offsets are bytes, 64 bit (`long_size_t`, `long_offset_t`) on every platform. `long_offset_range` is half open; its end may be `unknown_offset`, meaning up to the end.
+- Sizes and offsets are bytes, 64 bit (`size64_t`, `offset64_t`) on every platform. `offset64_range` is half open; its end may be `unknown_offset`, meaning up to the end.
 - `error_code_ptr ec`: null means failures are thrown as `io_error`; non-null means they are stored there, and it is cleared on success.
 - Seeking beyond the end is allowed. Reading there returns nothing; writing there extends the device if it can grow, and the gap reads as zero.
 - A device is always left valid and usable after an error. An operation has made progress after an error only where it says so.

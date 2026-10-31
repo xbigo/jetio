@@ -17,7 +17,7 @@ namespace jetio
         class pseudo_common
         {
         public:
-            long_size_t offset(error_code_ptr ec = nullptr) const noexcept
+            size64_t offset(error_code_ptr ec = nullptr) const noexcept
             {
                 clear_error(ec);
                 return m_pos;
@@ -29,20 +29,20 @@ namespace jetio
                 return false;
             }
 
-            long_size_t seek(long_size_t off, error_code_ptr ec = nullptr) noexcept
+            size64_t seek(size64_t off, error_code_ptr ec = nullptr) noexcept
             {
                 clear_error(ec);
                 return m_pos = off;
             }
 
-            long_size_t size(error_code_ptr ec = nullptr) const noexcept
+            size64_t size(error_code_ptr ec = nullptr) const noexcept
             {
                 clear_error(ec);
                 return unknown_size;
             }
 
         protected:
-            long_size_t m_pos = 0;
+            size64_t m_pos = 0;
         };
     } // namespace detail
 
@@ -112,7 +112,7 @@ namespace jetio
 
         /// The device cannot grow. Reports errc::invalid_argument if new_size is not 0.
         /// @return the size, 0
-        long_size_t truncate(long_size_t new_size, error_code_ptr ec = nullptr)
+        size64_t truncate(size64_t new_size, error_code_ptr ec = nullptr)
         {
             if (new_size != 0)
                 set_error_or_throw(ec, std::errc::invalid_argument);
@@ -121,13 +121,13 @@ namespace jetio
             return 0;
         }
 
-        long_size_t offset(error_code_ptr ec = nullptr) const noexcept
+        size64_t offset(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
             return m_pos;
         }
 
-        long_size_t seek(long_size_t off, error_code_ptr ec = nullptr) noexcept
+        size64_t seek(size64_t off, error_code_ptr ec = nullptr) noexcept
         {
             clear_error(ec);
             return m_pos = off;
@@ -139,14 +139,14 @@ namespace jetio
             return true;
         }
 
-        long_size_t size(error_code_ptr ec = nullptr) const noexcept
+        size64_t size(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
             return 0;
         }
 
     private:
-        long_size_t m_pos = 0;
+        size64_t m_pos = 0;
     };
 
     /// Has no data: reads nothing, the offset is always 0. [ reader, is_eofer, sizer ]
@@ -160,14 +160,14 @@ namespace jetio
             return buf.first(0);
         }
 
-        long_size_t offset(error_code_ptr ec = nullptr) const noexcept
+        size64_t offset(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
             return 0;
         }
 
         /// @return 0, whatever `off` is
-        long_size_t seek(long_size_t /*off*/, error_code_ptr ec = nullptr) noexcept
+        size64_t seek(size64_t /*off*/, error_code_ptr ec = nullptr) noexcept
         {
             clear_error(ec);
             return 0;
@@ -179,7 +179,7 @@ namespace jetio
             return true;
         }
 
-        long_size_t size(error_code_ptr ec = nullptr) const noexcept
+        size64_t size(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
             return 0;

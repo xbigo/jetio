@@ -32,7 +32,7 @@ tools/jetio-dev format [--check]
 tools/jetio-dev clean -p <preset>
 ```
 
-Useful CMake targets: `jetio_unit`, `jetio_bench`, `jetio_fuzz` (build one kind of test), `jetio_check` (build and run unit tests).
+Useful CMake targets: `jetio_unit`, `jetio_bench`, `jetio_fuzz` (build one kind of test), `jetio_check` (build and run unit tests, fail if they take too long, see [testing](design/testing.md)).
 
 ## Editor
 

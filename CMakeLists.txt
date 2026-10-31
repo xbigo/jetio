@@ -20,6 +20,8 @@ option(JETIO_BENCH_AND_FUZZ_IN_ALL
     "Build benchmarks and fuzzers as part of the default 'all' target (unit tests always are)" ON)
 option(JETIO_WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 option(JETIO_ENABLE_CLANG_TIDY "Run clang-tidy on project targets (static analysis placeholder)" OFF)
+set(JETIO_UNIT_TEST_TIME_LIMIT 3 CACHE STRING
+    "Seconds the whole unit test run may take in the jetio_check target; 0 disables the limit")
 set(JETIO_CONTRACT_LEVEL "" CACHE STRING
     "Contract checks: 0 = off, 1 = critical only, 2 = also default, 3 = also audit; empty = 1 with NDEBUG, else 3")
 set_property(CACHE JETIO_CONTRACT_LEVEL PROPERTY STRINGS "" 0 1 2 3)

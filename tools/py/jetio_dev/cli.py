@@ -44,12 +44,12 @@ def cmd_test(args: argparse.Namespace) -> int:
 
 
 def cmd_check(args: argparse.Namespace) -> int:
-    """Configure, build and run the tests of one preset."""
-    for step in (cmd_configure, cmd_build, cmd_test):
+    """Configure, build and test one preset; the unit tests must meet the time limit."""
+    for step in (cmd_configure, cmd_build):
         status = step(args)
         if status:
             return status
-    return 0
+    return run("cmake", "--build", "--preset", args.preset, "--target", "jetio_check")
 
 
 def cmd_bench(args: argparse.Namespace) -> int:
@@ -92,7 +92,7 @@ def build_parser() -> argparse.ArgumentParser:
     build = add("build", cmd_build, "cmake --build --preset")
     build.add_argument("-t", "--target", help="build only this target")
     add("test", cmd_test, "ctest --preset")
-    add("check", cmd_check, "configure + build + test")
+    add("check", cmd_check, "configure + build + unit tests with the time limit")
     add("bench", cmd_bench, "run the micro-benchmarks (release presets)")
     add("clean", cmd_clean, "remove the build directory of a preset")
     fmt = add("format", cmd_format, "run clang-format", preset=False)

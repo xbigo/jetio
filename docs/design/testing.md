@@ -12,6 +12,10 @@
 - Default test presets run `unit` only. Benchmarks run through `*-bench` test presets, fuzzers through the fuzz preset.
 - Benchmarks are measured in release presets only. In ctest they run as a short smoke test. `tests/bench/memory.cpp` exercises `memory_device` through the protocol functions; compare a release preset with its `-audit` twin to see the cost of contract checking.
 
+## Unit test time
+
+The `jetio_check` target (`jetio-dev check`) runs the unit tests and fails if the whole run takes longer than `JETIO_UNIT_TEST_TIME_LIMIT` seconds (default 3, 0 disables; set it with `-DJETIO_UNIT_TEST_TIME_LIMIT=<seconds>`). Only the total is checked. When it fails, look at the per-test times of `ctest`, or run `jetio_unit_tests -d yes`.
+
 ## Fuzzing and sanitizers
 
 They are orthogonal and kept as separate presets that share one mechanism:

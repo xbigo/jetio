@@ -21,6 +21,7 @@
 | `JETIO_INSTALL` | ON at top level | Install rules and package config |
 | `JETIO_BENCH_AND_FUZZ_IN_ALL` | ON | Build benchmarks and fuzzers in `all`. Unit tests are always in `all` |
 | `JETIO_WARNINGS_AS_ERRORS` | OFF | `-Werror` / `/WX` |
+| `JETIO_UNIT_TEST_TIME_LIMIT` | 3 | Seconds the unit tests may take in `jetio_check`; 0 disables |
 | `JETIO_CONTRACT_LEVEL` | empty | Contract checks: 0 off, 1 critical, 2 plus default, 3 plus audit; empty is 1 with `NDEBUG`, else 3 |
 | `JETIO_SANITIZE` | empty | Sanitizer list |
 | `JETIO_ENABLE_CLANG_TIDY` | OFF | Static analysis placeholder |

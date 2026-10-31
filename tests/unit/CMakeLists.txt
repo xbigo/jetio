@@ -17,9 +17,14 @@ catch_discover_tests(jetio_unit_tests
     DISCOVERY_MODE PRE_TEST
     PROPERTIES LABELS unit)
 
-# Build and run the unit tests: cmake --build <dir> --target jetio_check
+# Build and run the unit tests, and check that they are fast enough:
+#   cmake --build <dir> --target jetio_check
 add_custom_target(jetio_check
-    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C $<CONFIG> -L unit
-    WORKING_DIRECTORY "${PROJECT_BINARY_DIR}"
+    COMMAND ${CMAKE_COMMAND}
+        -DCTEST=${CMAKE_CTEST_COMMAND}
+        -DBINARY_DIR=${PROJECT_BINARY_DIR}
+        -DCONFIG=$<CONFIG>
+        -DLIMIT=${JETIO_UNIT_TEST_TIME_LIMIT}
+        -P ${PROJECT_SOURCE_DIR}/cmake/JetioTimedCheck.cmake
     DEPENDS jetio_unit_tests
     USES_TERMINAL)

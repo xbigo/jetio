@@ -1,7 +1,9 @@
 # Coding standard
 
 - ISO C++23 only. No compiler extensions, no `__attribute__` or `__declspec` in public headers.
-- Avoid macros. They are allowed when nothing else works, but they must not be part of a public header's interface, so the headers can later be exported as a C++ module.
+- Avoid macros. They are allowed when nothing else works, but they must not be part of a public header's interface, so the headers can later be exported as a C++ module. The contract macros (`JIO_Expects` and friends) are the only exception, see [design by contract](contracts.md).
+- Every public function documents its contract, see [design by contract](contracts.md).
+- Concept names must not collide with C library functions (`random`) or `std` functions (`forward`), so users can write `using namespace jetio`.
 - Headers use `#pragma once` instead of include guards: no macro names to pollute, and not needed in a module. It is not in the ISO standard but all supported compilers implement it.
 - Public headers are self-contained and checked by `VERIFY_INTERFACE_HEADER_SETS`.
 - Formatting is defined by `.clang-format` (Allman braces, 4 spaces, 100 columns). Run `tools/jetio-dev format`.

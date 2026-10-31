@@ -15,6 +15,7 @@
 | --- | --- |
 | `linux-x64-gcc-debug`, `linux-x64-clang-debug` | Everyday development, unit tests |
 | `linux-x64-gcc-release`, `linux-x64-clang-release` | Optimized with debug symbols, unit tests and benchmarks |
+| `linux-x64-gcc-release-audit`, `linux-x64-clang-release-audit` | Release with all contract checks (level 3), for comparing benchmarks and finding violations in optimized code |
 | `linux-x64-clang-libcxx-debug`, `linux-x64-clang-libcxx-release` | Clang 22 with libc++ instead of libstdc++ |
 | `linux-x64-clang-asan` | Unit tests under ASan and UBSan |
 | `linux-x64-clang-tsan` | Unit tests under TSan |

@@ -9,3 +9,5 @@ Docs record the current state and the decisions behind it, not how we got there.
   - [Testing](design/testing.md)
   - [Platform support](design/platform-support.md)
   - [Coding standard](design/coding-standard.md)
+  - [Design by contract](design/contracts.md)
+  - [IO protocol](design/io-protocol.md)

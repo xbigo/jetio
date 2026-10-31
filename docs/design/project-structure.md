@@ -17,4 +17,5 @@ docs/            Documentation
 - Public headers and private sources are separate trees. Files in `src/` include public headers with `<jetio/...>`, never by relative path.
 - The library target is `jetio::jetio`, an INTERFACE library. Its headers are a `FILE_SET HEADERS`, so CMake installs them, and `VERIFY_INTERFACE_HEADER_SETS` checks that each header compiles on its own.
 - When a compiled part appears, it is added under `src/` and linked from the `jetio` target, so the consumer-facing target name does not change.
-- Everything lives in namespace `jetio`.
+- Everything lives in namespace `jetio`; `jetio/jetio.hpp` includes all public headers.
+- Headers: `contract.hpp`, `types.hpp`, `error.hpp`, `iocore.hpp` (protocol), `memory.hpp`, `pseudo.hpp`, `version.hpp`.

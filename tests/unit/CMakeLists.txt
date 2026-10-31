@@ -2,6 +2,12 @@ jetio_require_catch2()
 include(Catch)
 
 jetio_add_test_executable(jetio_unit_tests unit
+    contract.cpp
+    error.cpp
+    iocore.cpp
+    memory.cpp
+    pseudo.cpp
+    types.cpp
     version.cpp)
 target_link_libraries(jetio_unit_tests PRIVATE Catch2::Catch2WithMain)
 target_compile_definitions(jetio_unit_tests PRIVATE

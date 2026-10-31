@@ -55,6 +55,13 @@
             }
         },
         {
+            "name": "audit",
+            "hidden": true,
+            "cacheVariables": {
+                "JETIO_CONTRACT_LEVEL": "3"
+            }
+        },
+        {
             "name": "libcxx",
             "hidden": true,
             "cacheVariables": {
@@ -98,6 +105,26 @@
                 "linux-x64",
                 "clang",
                 "release"
+            ]
+        },
+        {
+            "name": "linux-x64-gcc-release-audit",
+            "displayName": "Linux x64, GCC, Release, all contract checks",
+            "inherits": [
+                "linux-x64",
+                "gcc",
+                "release",
+                "audit"
+            ]
+        },
+        {
+            "name": "linux-x64-clang-release-audit",
+            "displayName": "Linux x64, Clang, Release, all contract checks",
+            "inherits": [
+                "linux-x64",
+                "clang",
+                "release",
+                "audit"
             ]
         },
         {
@@ -194,6 +221,14 @@
         {
             "name": "linux-x64-clang-libcxx-release",
             "configurePreset": "linux-x64-clang-libcxx-release"
+        },
+        {
+            "name": "linux-x64-gcc-release-audit",
+            "configurePreset": "linux-x64-gcc-release-audit"
+        },
+        {
+            "name": "linux-x64-clang-release-audit",
+            "configurePreset": "linux-x64-clang-release-audit"
         }
     ],
     "testPresets": [
@@ -288,6 +323,40 @@
         {
             "name": "linux-x64-clang-libcxx-release-bench",
             "configurePreset": "linux-x64-clang-libcxx-release",
+            "output": {
+                "outputOnFailure": true
+            },
+            "filter": {
+                "include": {
+                    "label": "bench"
+                }
+            }
+        },
+        {
+            "name": "linux-x64-gcc-release-audit",
+            "configurePreset": "linux-x64-gcc-release-audit",
+            "inherits": "test-base"
+        },
+        {
+            "name": "linux-x64-gcc-release-audit-bench",
+            "configurePreset": "linux-x64-gcc-release-audit",
+            "output": {
+                "outputOnFailure": true
+            },
+            "filter": {
+                "include": {
+                    "label": "bench"
+                }
+            }
+        },
+        {
+            "name": "linux-x64-clang-release-audit",
+            "configurePreset": "linux-x64-clang-release-audit",
+            "inherits": "test-base"
+        },
+        {
+            "name": "linux-x64-clang-release-audit-bench",
+            "configurePreset": "linux-x64-clang-release-audit",
             "output": {
                 "outputOnFailure": true
             },

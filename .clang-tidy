@@ -1,11 +1,14 @@
 # Static analysis placeholder: enable with -DJETIO_ENABLE_CLANG_TIDY=ON.
-# Extend the check list as the code base grows.
+# Extend the check list as the code base grows. The disabled checks are style preferences that
+# the project has not decided on, not findings.
 Checks: >
   -*,
   bugprone-*,
   modernize-*,
   performance-*,
-  readability-braces-around-statements,
+  -modernize-return-braced-init-list,
+  -modernize-use-designated-initializers,
+  -modernize-use-nodiscard,
   -modernize-use-trailing-return-type
 HeaderFilterRegex: '.*/include/jetio/.*'
 WarningsAsErrors: ''

@@ -1,17 +1,11 @@
 jetio_require_catch2()
 include(Catch)
 
-jetio_add_test_executable(jetio_unit_tests unit
-    error.cpp
-    iocore.cpp
-    memory.cpp
-    pseudo.cpp
-    std/contract.cpp
-    std/nt_string_view.cpp
-    std/string_view.cpp
-    std/utility.cpp
-    types.cpp
-    version.cpp)
+# Every .cpp here is a unit test source (CONFIGURE_DEPENDS: adding one re-runs CMake). To leave
+# a file out, list_filter() the variable.
+file(GLOB_RECURSE JETIO_UNIT_TEST_SOURCES LIST_DIRECTORIES false CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+jetio_add_test_executable(jetio_unit_tests unit ${JETIO_UNIT_TEST_SOURCES})
 target_include_directories(jetio_unit_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(jetio_unit_tests PRIVATE Catch2::Catch2WithMain)
 target_compile_definitions(jetio_unit_tests PRIVATE

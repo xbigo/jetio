@@ -45,24 +45,17 @@ include(JetioStaticAnalysis)
 # ---------------------------------------------------------------------------
 # The library (header-only for now)
 # ---------------------------------------------------------------------------
+# The headers are found by scanning include/; CONFIGURE_DEPENDS re-runs CMake when one is added
+# or removed. To leave a file out, list_filter() the variable here.
+file(GLOB_RECURSE JETIO_HEADERS LIST_DIRECTORIES false CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp)
 add_library(jetio INTERFACE)
 add_library(jetio::jetio ALIAS jetio)
 target_sources(jetio INTERFACE
     FILE_SET HEADERS
     BASE_DIRS include
     FILES
-        include/jetio/error.hpp
-        include/jetio/iocore.hpp
-        include/jetio/jetio.hpp
-        include/jetio/memory.hpp
-        include/jetio/pseudo.hpp
-        include/jetio/std/contract.hpp
-        include/jetio/std/string_view.hpp
-        include/jetio/std/string_view_io.hpp
-        include/jetio/std/string_view_concepts.hpp
-        include/jetio/std/utility.hpp
-        include/jetio/types.hpp
-        include/jetio/version.hpp)
+        ${JETIO_HEADERS})
 target_compile_features(jetio INTERFACE cxx_std_23)
 if(NOT JETIO_CONTRACT_LEVEL STREQUAL "")
     target_compile_definitions(jetio INTERFACE JIO_CONTRACT_LEVEL=${JETIO_CONTRACT_LEVEL})

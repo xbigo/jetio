@@ -350,6 +350,16 @@ namespace jetio
             JIO_Expects_critical(this->data()[this->size()] == CharT());
         }
 
+        /// From a string literal, or any array that is a constant expression; the array is
+        /// scanned as with a capacity of N. An array that is not a constant (a buffer) is
+        /// refused at compile time.
+        /// @pre the array contains CharT()
+        template <std::size_t N>
+        consteval basic_nt_string_view(const CharT (&literal)[N]) noexcept
+            : basic_nt_string_view(literal, src_capacity(N))
+        {
+        }
+
         basic_nt_string_view(std::nullptr_t, src_capacity_t) = delete;
         basic_nt_string_view(std::nullptr_t, size_type, src_capacity_t) = delete;
 

@@ -117,7 +117,7 @@ TEST_CASE("a view from a type that is terminated", "[nt_string_view]")
     static_assert(std::convertible_to<std::string, nt_string_view>);
     static_assert(!std::convertible_to<std::string_view, nt_string_view>);
     static_assert(!std::convertible_to<const char *, nt_string_view>);
-    static_assert(!std::convertible_to<const char (&)[4], nt_string_view>);
+    static_assert(std::convertible_to<const char (&)[4], nt_string_view>); // literals only
     static_assert(!std::convertible_to<liar, nt_string_view>);
     static_assert(std::convertible_to<nt_string_view, std::string_view>);
     static_assert(!std::constructible_from<nt_string_view, std::nullptr_t, src_capacity_t>);
@@ -163,12 +163,11 @@ TEST_CASE("comparison looks at the characters only", "[nt_string_view]")
     CHECK(whole == std::string_view(with_nul, 4));
     CHECK(scanned == std::string_view("ab"));
 
-    // pointers and arrays are not compared
+    // pointers are not compared; a literal converts to nt_string_view, so it compares
     static_assert(equality_comparable_between<nt_string_view, std::string_view>);
     static_assert(equality_comparable_between<std::string_view, nt_string_view>);
     static_assert(equality_comparable_between<nt_string_view, std::string>);
     static_assert(!equality_comparable_between<nt_string_view, const char *>);
-    static_assert(!equality_comparable_between<nt_string_view, const char (&)[4]>);
     static_assert(!equality_comparable_between<const char *, nt_string_view>);
     static_assert(!orderable_between<nt_string_view, const char *>);
 }
@@ -244,4 +243,20 @@ TEST_CASE("output and formatting", "[nt_string_view]")
     CHECK(std::format("[{}]", view) == std::string("[a\0b]", 5));
     CHECK(std::format("{}", view).size() == 3);
     CHECK(std::format("[{:>5}]", nt_string_view("xy", src_capacity(3))) == "[   xy]");
+}
+
+TEST_CASE("a string literal makes an nt_string_view", "[nt_string_view]")
+{
+    constexpr nt_string_view hello = "hello";
+    static_assert(hello.size() == 5 && hello.c_str()[5] == '\0');
+    CHECK(hello == std::string_view("hello"));
+
+    // the end of the view is the first terminator, as for a C string
+    constexpr nt_string_view cut = "ab\0cd";
+    static_assert(cut.size() == 2);
+
+    constexpr auto length = [](nt_string_view s) { return s.size(); };
+    CHECK(length("abc") == 3);
+    CHECK(nt_string_view("").empty());
+    CHECK((hello == "hello"));
 }

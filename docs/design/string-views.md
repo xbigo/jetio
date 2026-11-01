@@ -28,7 +28,7 @@ The types are templates over the character type, but this project uses only `cha
 
 ## Building an `nt_string_view`
 
-The invariant is established when the view is built and not checked again ("strict in"). A pointer that reaches the library as a string is never trusted without an explicit source capacity (elements that may be read from the pointer), and there is no implicit conversion from a pointer or an array.
+The invariant is established when the view is built and not checked again ("strict in"). A pointer that reaches the library as a string is never trusted without an explicit source capacity (elements that may be read from the pointer), and there is no implicit conversion from a pointer. An array converts to `nt_string_view` only when it is a constant expression (a string literal): the constructor is `consteval`, so a buffer is refused at compile time.
 
 | From | Precondition | Level |
 | --- | --- | --- |
@@ -84,14 +84,14 @@ The views are defined in the order nd, ns, nt, so that `shortened_type` of nt ca
 - No `operator<<` and no formatter in the class header: they are free functions in `string_view_io.hpp`, so that the view does not depend on the streams. (The standard headers `<iterator>` and `<ranges>` may still include the stream headers on their own, as libstdc++ does.)
 - `operator[]` accepts `size()`, which is the terminator. `operator[]`, `front`, `back`, `rm_prefix` and `substr` check their bounds in release builds (critical).
 - A default view points to a static terminator, not to `nullptr`.
-- No implicit conversion from a pointer or an array, no constructor from `(pointer, size)`: a pointer string always comes with an explicit `src_capacity`. No implicit conversion from `std::string_view`; the explicit way is the constructor `(assume, string_view)`.
-- Pointers and arrays are not accepted as strings by comparison; the other operand must convert to a string view and must not be a pointer.
+- No implicit conversion from a pointer, and from an array only in `nt_string_view` and only at compile time (`consteval`, the end is the first terminator); no constructor from `(pointer, size)`: a pointer string always comes with an explicit `src_capacity`. No implicit conversion from `std::string_view`; the explicit way is the constructor `(assume, string_view)`.
+- Pointers are not accepted as strings by comparison; the other operand must convert to a string view and must not be a pointer. A literal compares through its conversion to `nt_string_view`.
 - `c_str()` exists.
 - Only `char` is used in this project (see the file comment); the aliases for the other character types are there for whoever needs them.
 
 ## Comparison and hashing
 
-Comparison looks at the characters only: not at the address, not at the terminator, and characters before it count. It works with any type that converts to a string view, except pointers and arrays, which are not compared. Equal views hash equally, and the hash is the one of `std::basic_string_view`.
+Comparison looks at the characters only: not at the address, not at the terminator, and characters before it count. It works with any type that converts to a string view, except pointers, which are not compared. Equal views hash equally, and the hash is the one of `std::basic_string_view`.
 
 ## Open
 

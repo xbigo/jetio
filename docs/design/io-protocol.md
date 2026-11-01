@@ -28,13 +28,18 @@ The operations are objects, so they are not overloaded with functions of the sam
 - Seeking beyond the end is allowed. Reading there returns nothing; writing there extends the device if it can grow, and the gap reads as zero.
 - A device is always left valid and usable after an error. An operation has made progress after an error only where it says so.
 
+## Left out on purpose
+
+- Positional operations (`read_at`, `write_at`). A device is not thread safe and carries no cost for threads; concurrent use is made of adaptors that give each user a cooperating device (see `multiplex_device`) and take care of the synchronization.
+- Buffering. Devices have no buffer, so there is nothing to flush; a buffer, if needed, is an adaptor, which composes with the other adaptors and keeps the devices simple.
+
 ## Protocol-level contracts
 
 Checked by the operations of namespace `jetio`, for every device, whether it provides them as members or as free functions. These are plain checks: debug builds only.
 
 | Operation | Contract |
 | --- | --- |
-| `read` | Result is a prefix of the buffer, shorter only at the end of data or after an error |
+| `read` | Result is a prefix of the buffer. It may be shorter than the buffer, but it is empty only for an empty buffer, at the end of data or after an error (only the prefix is checked) |
 | `write` | Result is the unwritten suffix of the buffer, not empty only after an error |
 | `view_rd`, `view_wr` | Precondition `is_valid_range(rng)`; unless an error occurred, the view has `range_size(rng)` bytes when the end is known |
 | `seek_forward` | Precondition (audit): target is not before the current offset |

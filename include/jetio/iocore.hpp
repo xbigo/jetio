@@ -107,8 +107,9 @@ namespace jetio
 
     /// Reads up to buf.size() bytes at the current offset and advances the offset by the
     /// number of bytes read.
-    /// @return the part of buf that was filled, always a prefix of buf. It is shorter than buf
-    ///         only at the end of the data or after an error.
+    /// @return the part of buf that was filled, always a prefix of buf. It may be shorter than
+    ///         buf (a device need not fill it), but it is empty only if buf is empty, at the end
+    ///         of the data, or after an error.
     /// @post result.data() == buf.data() && result.size() <= buf.size()
     inline constexpr detail::read_op::fn read{};
 

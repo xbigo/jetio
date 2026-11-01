@@ -100,7 +100,7 @@ TEST_CASE("a view of a known length may contain terminators", "[nt_string_view]"
     static_assert(view.size() == 5);
     CHECK(view == std::string_view(text, 5));
     CHECK(view[2] == '\0'); // inside the view
-    CHECK(view[5] == '\0'); // the terminator
+    CHECK(view.c_str()[5] == '\0'); // the terminator
 }
 
 TEST_CASE("a view from a type that is terminated", "[nt_string_view]")
@@ -123,15 +123,17 @@ TEST_CASE("a view from a type that is terminated", "[nt_string_view]")
     static_assert(!std::constructible_from<nt_string_view, std::nullptr_t, src_capacity_t>);
 }
 
-TEST_CASE("element access and the terminator", "[nt_string_view]")
+TEST_CASE("element access and c_str", "[nt_string_view]")
 {
     const std::string s = "abc";
     const nt_string_view view = s;
     CHECK(view[0] == 'a');
-    CHECK(view[3] == '\0'); // pos == size() is the terminator
+    CHECK(view[2] == 'c');
     CHECK(view.front() == 'a');
     CHECK(view.back() == 'c');
     CHECK(view.data() == view.c_str());
+    CHECK(view.is_terminated());
+    CHECK(view.c_str()[3] == '\0');
 }
 
 TEST_CASE("comparison looks at the characters only", "[nt_string_view]")

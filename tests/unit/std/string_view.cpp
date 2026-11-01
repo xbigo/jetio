@@ -69,8 +69,8 @@ TEST_CASE("a default view is empty and its end is a terminator", "[string_view]"
     constexpr nd_string_view nd;
     constexpr ns_string_view ns;
     static_assert(nd.empty() && ns.empty());
-    CHECK(is_terminated(nd));
-    CHECK(is_terminated(ns));
+    CHECK(nd.is_terminated());
+    CHECK(ns.is_terminated());
     CHECK(nd == std::string_view());
     CHECK(as_nt(ns).has_value());
 }
@@ -84,7 +84,7 @@ TEST_CASE("a stronger view converts without changing the characters", "[string_v
     CHECK(ns == std::string_view("abc"));
     CHECK(nd == std::string_view("abc"));
     CHECK(nd.data() == s.data());
-    CHECK(is_terminated(nd));
+    CHECK(nd.is_terminated());
 
     const ns_string_view from_string = s;
     const nd_string_view from_string_nd = s;
@@ -100,12 +100,12 @@ TEST_CASE("shortening a view keeps the guarantee that survives", "[string_view]"
     const auto head = substr(nt, 0, 3);
     static_assert(std::same_as<std::remove_const_t<decltype(head)>, ns_string_view>);
     CHECK(head == std::string_view("abc"));
-    CHECK(!is_terminated(head)); // the 'd' follows
+    CHECK(!head.is_terminated()); // the 'd' follows
     CHECK(!as_nt(head).has_value());
 
     // a shortened view that happens to reach the end can be looked at again
     const auto whole = substr(nt, 0, nt.size());
-    CHECK(is_terminated(whole));
+    CHECK(whole.is_terminated());
     const auto terminated = as_nt(whole);
     if (terminated.has_value())
         CHECK(terminated->c_str() == s.c_str());
@@ -143,7 +143,7 @@ TEST_CASE("a view built on the caller's word", "[string_view]")
     const ns_string_view ns(assume, head);
     CHECK(nd == head);
     CHECK(ns == head);
-    CHECK(!is_terminated(nd));
+    CHECK(!nd.is_terminated());
     CHECK(nt_string_view(assume, whole) == whole);
 }
 
@@ -158,7 +158,7 @@ TEST_CASE("the views share one interface", "[string_view]")
     CHECK(std::string(nd.rbegin(), nd.rend()) == "cba");
     CHECK(nd.front() == 'a');
     CHECK(nd.back() == 'c');
-    CHECK(nd[3] == '\0'); // the end of every view can be read
+    CHECK(nd.is_terminated());
 
     // comparison across the levels looks at the characters
     CHECK(nt == ns);
@@ -197,7 +197,7 @@ TEMPLATE_TEST_CASE("a pointer with its capacity is scanned for the terminator", 
     const TestType view(text, src_capacity(sizeof(text)));
     CHECK(view == std::string_view("abc"));
     CHECK(view.data() == text);
-    CHECK(is_terminated(view));
+    CHECK(view.is_terminated());
 }
 
 TEMPLATE_TEST_CASE("a length and a capacity give a view of a buffer", "[string_view]",
@@ -207,7 +207,7 @@ TEMPLATE_TEST_CASE("a length and a capacity give a view of a buffer", "[string_v
     const TestType view(buffer, 2, src_capacity(4));
     CHECK(view == std::string_view("ab"));
     CHECK(view.data() == buffer);
-    CHECK(is_terminated(view));
+    CHECK(view.is_terminated());
 }
 
 TEST_CASE("what each view asks of the buffer after the end", "[string_view]")
@@ -218,17 +218,17 @@ TEST_CASE("what each view asks of the buffer after the end", "[string_view]")
     // nd: the end only has to be readable
     const nd_string_view nd(open, 2, src_capacity(3));
     CHECK(nd == std::string_view("ab"));
-    CHECK(!is_terminated(nd));
+    CHECK(!nd.is_terminated());
 
     // ns: a terminator follows, further on than the end
     const ns_string_view ns(closed, 2, src_capacity(4));
     CHECK(ns == std::string_view("ab"));
-    CHECK(!is_terminated(ns));
+    CHECK(!ns.is_terminated());
 
     // nt: the end is the terminator
     const nt_string_view nt(closed, 3, src_capacity(4));
     CHECK(nt == std::string_view("abc"));
-    CHECK(is_terminated(nt));
+    CHECK(nt.is_terminated());
 }
 
 TEST_CASE("the views work in constant expressions", "[string_view]")
@@ -240,8 +240,8 @@ TEST_CASE("the views work in constant expressions", "[string_view]")
     constexpr nd_string_view nd = head;
     constexpr ns_string_view ns(text, 3, src_capacity(sizeof(text)));
 
-    static_assert(z.size() == 5 && z[5] == '\0' && z.front() == 'h' && z.back() == 'o');
-    static_assert(head.size() == 2 && !is_terminated(head) && nd == head);
+    static_assert(z.size() == 5 && z.c_str()[5] == '\0' && z.front() == 'h' && z.back() == 'o');
+    static_assert(head.size() == 2 && !head.is_terminated() && nd == head);
     static_assert(tail.size() == 3 && tail.c_str() == text + 2 && as_nt(tail).has_value());
     static_assert(ns.size() == 3);
     CHECK(head == std::string_view("he"));

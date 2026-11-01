@@ -18,7 +18,7 @@ The types are templates over the character type, but this project uses only `cha
 ## Conversions
 
 - Towards a weaker guarantee: static, implicit, constrained by the concepts.
-- Towards a stronger one: only to terminated can the program decide, from an ns or nd view, by reading the end (O(1), safe because the end can be read): `is_terminated(view)` and `as_nt(view)`, which returns an `std::optional<nt_string_view>`. Every other direction is a constructor with the tag `assume` and a precondition that cannot be checked (the null check is the exception, and for nt the terminator, see below).
+- Towards a stronger one: only to terminated can the program decide, from an ns or nd view, by reading the end (O(1), safe because the end can be read): `view.is_terminated()` and `as_nt(view)`, which returns an `std::optional<nt_string_view>`. Every other direction is a constructor with the tag `assume` and a precondition that cannot be checked (the null check is the exception, and for nt the terminator, see below).
 
 ## Guarantee of a type
 
@@ -61,15 +61,15 @@ All three views have the same two pointer constructors, so that they can be desi
 ## The design of the views
 
 - **Immutable.** No member changes a view in place. `rm_prefix` and `substr` return a new view, and every function that returns a view is `[[nodiscard]]`. Only assignment and swap replace the whole value; assignment is needed because `std::ranges::view` requires a movable type.
-- **One base, no inheritance between the views.** What the three have in common is a CRTP base, `detail::string_view_ops` in `string_view.hpp`: it holds the pointer and the size, and has `data()`, `size()`, the iterators, `swap`, `empty`, `operator[]`, `front`, `back`, the conversion to `std::basic_string_view`, `==` and `<=>`. Its constructors and its assignment are private, for the derived view only (`friend Derived`), so a reference to the base can neither build nor assign: a stronger view cannot be weakened through it. A view that inherited from a weaker view could. Each view has its own constructors, which decide what is promised about the end (and nt has `c_str()`), and a `shortened_type`, the view that keeps its guarantee when the end moves back (nt gives ns, ns gives ns, nd gives nd).
+- **One base, no inheritance between the views.** What the three have in common is a CRTP base, `detail::string_view_ops` in `string_view.hpp`: it holds the pointer and the size, and has `data()`, `size()`, `is_terminated()`, the iterators, `swap`, `empty`, `operator[]`, `front`, `back`, the conversion to `std::basic_string_view`, `==` and `<=>`. Its constructors and its assignment are private, for the derived view only (`friend Derived`), so a reference to the base can neither build nor assign: a stronger view cannot be weakened through it. A view that inherited from a weaker view could. Each view has its own constructors, which decide what is promised about the end (and nt has `c_str()`), and a `shortened_type`, the view that keeps its guarantee when the end moves back (nt gives ns, ns gives ns, nd gives nd).
 - **Strict in.** The invariant is established when the view is built and never checked again. Data members have default member initializers and are set in the member initializer list; a constructor checks the invariant after the members are set, but before it reads through a pointer.
 - **Primitives and extensions.** The primitives need the private members, have a meaning that no other member covers, or are needed by the standard algorithms. They are orthogonal, and none of them can break the invariant. The extensions are composed from the primitives, for convenience or to follow a convention. Anything else is a free function.
 
 | | Members |
 | --- | --- |
-| Primitives | the constructors, `data()`, `size()`, `c_str()` (nt only: the terminator, which no other member covers), `begin`/`end` and the const and reverse variants (the standard algorithms and ranges depend on them), `swap` |
+| Primitives | the constructors, `data()`, `size()`, `is_terminated()`, `c_str()` (nt only: the terminator, which no other member covers), `begin`/`end` and the const and reverse variants (the standard algorithms and ranges depend on them), `swap` |
 | Extensions | `empty` (`size() == 0` at the same cost), `operator[]`, `front` and `back` (style adapters: the iterators cover them, and they could be free functions), the conversion to `std::basic_string_view`, `==`, `<=>`, `std::hash` |
-| Free functions | `substr(view, pos)`, `substr(view, pos, n)`, `rm_prefix`, `rm_suffix`, `is_terminated`, `as_nt`, and in `string_view_io.hpp` `operator<<` and `std::formatter` |
+| Free functions | `substr(view, pos)`, `substr(view, pos, n)`, `rm_prefix`, `rm_suffix`, `as_nt`, and in `string_view_io.hpp` `operator<<` and `std::formatter` |
 
 Shortening: `substr(view, pos)` and `rm_prefix(view, n)` keep the type, because the end does not move. `substr(view, pos, n)` and `rm_suffix(view, n)` return `shortened_type`: a terminated view gives a sentinel one. They build the result with `assume` (see above), which for nt looks at the terminator once more.
 
@@ -82,7 +82,7 @@ The views are defined in the order nd, ns, nt, so that `shortened_type` of nt ca
 - No searching or matching (`find` and its relatives, `starts_with`, `ends_with`, `contains`) and no `compare`: they are algorithms, not operations of the type. Use `std::string_view(view)` or an external algorithm.
 - No `at` and no throwing `copy`: bounds are preconditions, not exceptions. No `max_size` and no `length`.
 - No `operator<<` and no formatter in the class header: they are free functions in `string_view_io.hpp`, so that the view does not depend on the streams. (The standard headers `<iterator>` and `<ranges>` may still include the stream headers on their own, as libstdc++ does.)
-- `operator[]` accepts `size()`, which is the terminator. `operator[]`, `front`, `back`, `rm_prefix` and `substr` check their bounds in release builds (critical).
+- `operator[]` has the range of `std::basic_string_view`, `pos < size()`; whether the view ends at a terminator is asked with `is_terminated()`, and the terminator itself is read with `c_str()` (nt). `operator[]`, `front`, `back`, `rm_prefix` and `substr` check their bounds in release builds (critical).
 - A default view points to a static terminator, not to `nullptr`.
 - No implicit conversion from a pointer, and from an array only in `nt_string_view` and only at compile time (`consteval`, the end is the first terminator); no constructor from `(pointer, size)`: a pointer string always comes with an explicit `src_capacity`. No implicit conversion from `std::string_view`; the explicit way is the constructor `(assume, string_view)`.
 - Pointers are not accepted as strings by comparison; the other operand must convert to a string view and must not be a pointer. A literal compares through its conversion to `nt_string_view`.

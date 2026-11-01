@@ -16,11 +16,12 @@
 //    views; only assignment and swap replace the whole value.
 //  - Strict in: the guarantee is established when the view is built, never checked again.
 //    Nothing that reaches a view as a pointer is trusted without an explicit source capacity,
-//    and there is no implicit conversion from a pointer or an array.
+//    and there is no implicit conversion from a pointer (an array converts to nt only when it
+//    is a constant, a literal).
 //  - Primitives, which need the private members, have a meaning no other member covers, or
-//    are needed by the standard algorithms: the constructors, data(), size(), c_str() of nt,
-//    and the iterator functions and swap() of the base. The extensions (empty, operator[],
-//    front, back, the conversion, the comparison) are composed from them.
+//    are needed by the standard algorithms: the constructors, data(), size(), is_terminated(),
+//    c_str() of nt, and the iterator functions and swap() of the base. The extensions (empty,
+//    operator[], front, back, the conversion, the comparison) are composed from them.
 //  - The views are independent types. What they share is the CRTP base string_view_ops, which
 //    holds the pointer and the size; its constructors and assignment are private, for the
 //    derived view only, so a stronger view cannot be weakened through a reference to its base.
@@ -102,11 +103,10 @@ namespace jetio
             // --- extensions -------------------------------------------------------------------
             constexpr bool empty() const noexcept { return m_size == 0; }
 
-            /// pos == size() is allowed: the end of every view of ours can be read.
-            /// @pre pos <= size() (critical)
+            /// @pre pos < size() (critical)
             constexpr const_reference operator[](size_type pos) const noexcept
             {
-                JIO_Expects_critical(pos <= m_size);
+                JIO_Expects_critical(pos < m_size);
                 return m_data[pos];
             }
 
@@ -122,6 +122,12 @@ namespace jetio
             {
                 JIO_Expects_critical(!empty());
                 return m_data[m_size - 1];
+            }
+
+            /// Whether the view ends at a terminator. The end of every view of ours can be read.
+            [[nodiscard]] constexpr bool is_terminated() const noexcept
+            {
+                return m_data[m_size] == CharT();
             }
 
             constexpr operator string_view_type() const noexcept { return {m_data, m_size}; }
@@ -439,20 +445,13 @@ namespace jetio
             assume, typename V::string_view_type(view.data(), view.size() - n));
     }
 
-    /// Whether the view ends at a terminator: the end of every view of ours can be read.
-    template <string_view_family V>
-    [[nodiscard]] constexpr bool is_terminated(const V &view) noexcept
-    {
-        return view.data()[view.size()] == typename V::value_type();
-    }
-
     /// The view as a terminated one, if its end is the terminator.
     template <string_view_family V>
     [[nodiscard]] constexpr std::optional<
         basic_nt_string_view<typename V::value_type, typename V::traits_type>>
     as_nt(const V &view) noexcept
     {
-        if (!is_terminated(view))
+        if (!view.is_terminated())
             return std::nullopt;
         return basic_nt_string_view<typename V::value_type, typename V::traits_type>(
             assume, typename V::string_view_type(view.data(), view.size()));

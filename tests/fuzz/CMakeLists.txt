@@ -35,4 +35,11 @@ function(jetio_add_fuzzer name source)
     set_tests_properties(fuzz.${name} PROPERTIES LABELS fuzz)
 endfunction()
 
-jetio_add_fuzzer(smoke smoke.cpp)
+# Every .cpp here is a fuzz target named after the file (CONFIGURE_DEPENDS: adding one re-runs
+# CMake): libFuzzer has one entry point per executable. To leave a file out, list_filter().
+file(GLOB JETIO_FUZZ_SOURCES LIST_DIRECTORIES false CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+foreach(source IN LISTS JETIO_FUZZ_SOURCES)
+    cmake_path(GET source STEM name)
+    jetio_add_fuzzer(${name} ${source})
+endforeach()

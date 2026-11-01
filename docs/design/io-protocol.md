@@ -1,6 +1,8 @@
 # IO protocol
 
-A device is any type with some of the member functions below. Free functions of the same name in namespace `jetio` forward to them, supply the default `error_code_ptr` argument and check the protocol-level contract. A concept names each capability.
+A device is any type with some of the operations below, each as a member function or as a free function found by argument dependent lookup, so a custom device need not be written in namespace `jetio`; a free function takes precedence over a member, so a type can be extended or overridden from outside (a derived type can override an inherited member). Do not write an unconstrained function template with the name of an operation: it would also take over the types of this library that wrap yours. The operations of namespace `jetio` (`jetio::read`, ...) are customization point objects: they call the member or the free function, supply the default `error_code_ptr` argument and check the protocol-level contract. A concept names each capability.
+
+The operations are objects, so they are not overloaded with functions of the same name: call them qualified (`jetio::read(device, buf)`), because `using namespace jetio` makes an unqualified `read` ambiguous where `::read` of `<unistd.h>` is declared. Code in namespace `jetio` does not name a local variable or parameter `read`, `write`, `sync`, `size`, `offset`, `seek`, ... (clang's `-Wshadow`).
 
 | Capability | Concept | Operation |
 | --- | --- | --- |
@@ -28,7 +30,7 @@ A device is any type with some of the member functions below. Free functions of 
 
 ## Protocol-level contracts
 
-Checked by the free functions, for every device. These are plain checks: debug builds only.
+Checked by the operations of namespace `jetio`, for every device, whether it provides them as members or as free functions. These are plain checks: debug builds only.
 
 | Operation | Contract |
 | --- | --- |

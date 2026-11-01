@@ -115,8 +115,8 @@ namespace jetio
     /// The represent can change its size.
     template <typename Rep>
     concept truncatable_represent =
-        write_represent<Rep> && requires(std::remove_cvref_t<Rep> &rep, std::size_t size) {
-            detail::represent_data(rep).resize(size);
+        write_represent<Rep> && requires(std::remove_cvref_t<Rep> &rep, std::size_t new_size) {
+            detail::represent_data(rep).resize(new_size);
         };
 
     struct const_buffer_represent
@@ -236,9 +236,10 @@ namespace jetio
         buffer_rd_view view_rd(offset64_range h, error_code_ptr ec = nullptr) const
         {
             JIO_Expects_critical(is_valid_range(h));
-            const std::size_t size = data_size_();
-            const offset64_t end = h.end == unknown_offset ? static_cast<offset64_t>(size) : h.end;
-            if (std::cmp_greater(end, size) || h.begin > end)
+            const std::size_t data_size = data_size_();
+            const offset64_t end =
+                h.end == unknown_offset ? static_cast<offset64_t>(data_size) : h.end;
+            if (std::cmp_greater(end, data_size) || h.begin > end)
             {
                 set_error_or_throw(ec, std::errc::invalid_argument);
                 return buffer_rd_view();
@@ -268,7 +269,7 @@ namespace jetio
             }
 
             const std::size_t old_pos = pos_();
-            const std::size_t old_size = data_size_();
+            const std::size_t data_size = data_size_();
             if (buf.size() > std::numeric_limits<std::size_t>::max() - old_pos)
             {
                 set_error_or_throw(ec, std::errc::value_too_large);
@@ -277,7 +278,7 @@ namespace jetio
 
             const std::size_t new_pos = old_pos + buf.size();
             std::size_t writable = buf.size();
-            if (new_pos > old_size)
+            if (new_pos > data_size)
             {
                 if constexpr (truncatable_represent<Represent>)
                 {
@@ -286,7 +287,7 @@ namespace jetio
                 }
                 else
                 {
-                    writable = old_pos < old_size ? old_size - old_pos : std::size_t{0};
+                    writable = old_pos < data_size ? data_size - old_pos : std::size_t{0};
                 }
             }
 
@@ -315,8 +316,9 @@ namespace jetio
             requires write_represent<Represent>
         {
             JIO_Expects_critical(is_valid_range(h));
-            const std::size_t size = data_size_();
-            const offset64_t end = h.end == unknown_offset ? static_cast<offset64_t>(size) : h.end;
+            const std::size_t old_size = data_size_();
+            const offset64_t end =
+                h.end == unknown_offset ? static_cast<offset64_t>(old_size) : h.end;
             if (h.begin > end)
             {
                 set_error_or_throw(ec, std::errc::invalid_argument);
@@ -327,7 +329,7 @@ namespace jetio
                 set_error_or_throw(ec, std::errc::value_too_large);
                 return buffer_wr_view();
             }
-            if (std::cmp_greater(end, size))
+            if (std::cmp_greater(end, old_size))
             {
                 if constexpr (truncatable_represent<Represent>)
                 {

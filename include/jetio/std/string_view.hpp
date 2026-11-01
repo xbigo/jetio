@@ -486,7 +486,7 @@ namespace jetio
     {
         /// `"text"_nt`, the same as literal("text").
         [[nodiscard]] consteval nt_string_view operator""_nt(const char *text,
-                                                              std::size_t length) noexcept
+                                                             std::size_t length) noexcept
         {
             return nt_string_view(text, src_capacity(length + 1));
         }

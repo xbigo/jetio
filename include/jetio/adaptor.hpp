@@ -238,8 +238,8 @@ namespace jetio
         size64_t size(error_code_ptr ec = nullptr) const
             requires sizer<Device &>
         {
-            const size64_t size = jetio::size(m_device, ec);
-            return size == unknown_size ? size : to_logical_(size);
+            const size64_t device_size = jetio::size(m_device, ec);
+            return device_size == unknown_size ? device_size : to_logical_(device_size);
         }
 
         /// @return the size afterwards, `new_size` unless the device reports otherwise
@@ -487,9 +487,9 @@ namespace jetio
         /// @return false if h is not within the window
         bool map_(offset64_range h, offset64_range &mapped) const noexcept
         {
-            const size64_t size = size_();
-            if (std::cmp_greater(h.begin, size) ||
-                (h.end != unknown_offset && std::cmp_greater(h.end, size)))
+            const size64_t window_size = size_();
+            if (std::cmp_greater(h.begin, window_size) ||
+                (h.end != unknown_offset && std::cmp_greater(h.end, window_size)))
                 return false;
             mapped.begin = m_section.begin + h.begin;
             mapped.end = h.end == unknown_offset ? m_section.end : m_section.begin + h.end;

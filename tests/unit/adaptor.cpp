@@ -61,9 +61,9 @@ TEST_CASE("adaptors provide what the wrapped device provides", "[adaptor][concep
                   reader<shift_device<vec>> && writer<shift_device<vec>> &&
                   read_map<shift_device<vec>> && write_map<shift_device<vec>>);
     static_assert(random_access<sub_device<vec>> && reader<sub_device<vec>> &&
-                  writer<sub_device<vec>> && is_eofer<sub_device<vec>> &&
-                  sizer<sub_device<vec>> && truncater<sub_device<vec>> &&
-                  read_map<sub_device<vec>> && write_map<sub_device<vec>>);
+                  writer<sub_device<vec>> && is_eofer<sub_device<vec>> && sizer<sub_device<vec>> &&
+                  truncater<sub_device<vec>> && read_map<sub_device<vec>> &&
+                  write_map<sub_device<vec>>);
 
     using readonly = memory_device<const_buffer_represent>;
     static_assert(reader<multiplex_device<readonly>> && !writer<multiplex_device<readonly>> &&

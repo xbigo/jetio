@@ -99,7 +99,7 @@ TEST_CASE("a view of a known length may contain terminators", "[nt_string_view]"
     constexpr nt_string_view view(text, 5, src_capacity(6));
     static_assert(view.size() == 5);
     CHECK(view == std::string_view(text, 5));
-    CHECK(view[2] == '\0'); // inside the view
+    CHECK(view[2] == '\0');         // inside the view
     CHECK(view.c_str()[5] == '\0'); // the terminator
 }
 

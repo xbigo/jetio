@@ -242,7 +242,7 @@ TEST_CASE("output and formatting", "[nt_string_view]")
 
     CHECK(std::format("[{}]", view) == std::string("[a\0b]", 5));
     CHECK(std::format("{}", view).size() == 3);
-    CHECK(std::format("[{:>5}]", nt_string_view("xy", src_capacity(3))) == "[   xy]");
+    CHECK(std::format("[{:>5}]", literal("xy")) == "[   xy]");
 }
 
 TEST_CASE("a string literal makes an nt_string_view", "[nt_string_view]")

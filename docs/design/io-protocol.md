@@ -63,6 +63,14 @@ Checked by the operations of namespace `jetio`, for every device, whether it pro
 
 A write to a fixed-size represent stores what fits, then reports `errc::no_space_on_device` and returns the rest. Every other memory device operation gives the strong guarantee.
 
+### Views made by copying
+
+`reader_to_view` makes a `read_map` of a reader and `writer_to_view` a `write_map` of a writer, at the price of a copy (`cache_view.hpp`). `view_rd` reads the range into a `cache_rd_view`; the device moves to the begin of the range (forward only, if it cannot seek). `view_wr` gives a `cache_wr_view` whose bytes start as zeros and are written to the device when the view is destroyed. An unknown end of the range is the size of the device if it knows it, otherwise `errc::invalid_argument`. A range beyond the end of the data for `view_rd` is `errc::invalid_argument`.
+
+A `cache_wr_view` writes its bytes to the device when it is destroyed, as well as it can: the view keeps the `ec` that `view_wr` was given and the destructor, like any other operation, stores the result there (cleared on success); without an `ec` a failure is dropped and nothing is thrown. A view that `view_wr` could not make (it reports the error and returns an empty view) writes nothing. To see a failure, pass an `ec` and look at it after the view is destroyed; the `ec` must outlive the view. There is no `commit` operation, and whether the bytes reach the device before the view is destroyed is implementation defined. The protocol does not aim at strict durability: `sync` is its coarse way to make data durable, and code that needs control of each write uses a concrete device, where it has the `ec` of every operation.
+
+`read_full` (`algorithm.hpp`) reads until the buffer is full, the data ends or an error occurs, since `read` may return less.
+
 ### Adaptors
 
 They refer to the wrapped device and do not own it, and provide the capabilities of the wrapped device that survive the change (their members are constrained by the concepts of the wrapped device).
@@ -75,4 +83,4 @@ The views of `shift_device` and `sub_device` are the views of the wrapped device
 
 ## Not yet migrated
 
-The cache views of ape (`cache_rd_view`, `reader_to_view`, `cache_wr_view`, `writer_to_view`, which emulate views over readers and writers) are not part of the library yet. How `cache_wr_view` writes back is open.
+Nothing of ape is left to migrate. Not yet written: a type erased device (like iref of nix), the buffering and multi thread adaptors (`buffer_dev`, `mt_reader`, `mt_multiplex_reader`), `copy`, and a file device.

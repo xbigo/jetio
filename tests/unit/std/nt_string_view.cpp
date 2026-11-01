@@ -260,3 +260,17 @@ TEST_CASE("a string literal makes an nt_string_view", "[nt_string_view]")
     CHECK(nt_string_view("").empty());
     CHECK((hello == "hello"));
 }
+
+TEST_CASE("literal() and _nt give the same nt_string_view", "[nt_string_view]")
+{
+    constexpr auto a = literal("hello");
+    constexpr auto b = "hello"_nt;
+    static_assert(std::same_as<std::remove_const_t<decltype(a)>, nt_string_view>);
+    static_assert(std::same_as<std::remove_const_t<decltype(b)>, nt_string_view>);
+    static_assert(a.size() == 5 && a == b);
+    CHECK(a == std::string_view("hello"));
+
+    // the end is the first terminator in both
+    static_assert(literal("ab\0cd").size() == 2 && "ab\0cd"_nt.size() == 2);
+    static_assert(literal(u8"text").size() == 4);
+}

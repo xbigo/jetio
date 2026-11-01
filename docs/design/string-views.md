@@ -98,3 +98,7 @@ Comparison looks at the characters only: not at the address, not at the terminat
 Nothing consumes the sentinel guarantee yet: ns exists so that shortening an nt view loses as little as possible, and no operation needs the sentinel (`is_terminated` and `as_nt` need only a readable end). An operation such as extending a view to the terminator after its end would be the first user. The searching and matching algorithms (free functions) are not written.
 
 Related proposals: P3655 (`cstring_view`), P4220 (design goals), P1402, N3921.
+
+## String literals
+
+`literal("text")` and `"text"_nt` (namespace `jetio::literals`, inline) give an `nt_string_view` at compile time. In the project a literal that is kept in a variable is written `constexpr auto s = literal("text");`, since `auto s = "text"` would be a pointer. Both end at the first terminator, as the pointer constructor does.

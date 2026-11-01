@@ -474,6 +474,24 @@ namespace jetio
     using nt_u8string_view = basic_nt_string_view<char8_t>;
     using nt_u16string_view = basic_nt_string_view<char16_t>;
     using nt_u32string_view = basic_nt_string_view<char32_t>;
+
+    /// A string literal as an nt_string_view: `constexpr auto s = literal("text");`. Unlike
+    /// `auto s = "text"`, the type is not a pointer.
+    template <typename CharT, std::size_t N>
+    [[nodiscard]] consteval basic_nt_string_view<CharT> literal(const CharT (&text)[N]) noexcept
+    {
+        return basic_nt_string_view<CharT>(text);
+    }
+
+    inline namespace literals
+    {
+        /// `"text"_nt`, the same as literal("text").
+        [[nodiscard]] consteval nt_string_view operator""_nt(const char *text,
+                                                              std::size_t length) noexcept
+        {
+            return nt_string_view(text, src_capacity(length + 1));
+        }
+    } // namespace literals
 } // namespace jetio
 
 // A view is cheap to copy, and its iterators outlive it: it is a view and a borrowed range.

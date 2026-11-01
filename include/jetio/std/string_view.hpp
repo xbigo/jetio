@@ -36,7 +36,7 @@
 // scanning for the terminator, or with the length n when the buffer is known.
 
 #include <jetio/std/contract.hpp>
-#include <jetio/std/string_view_guarantee.hpp>
+#include <jetio/std/string_view_concepts.hpp>
 
 #include <compare>
 #include <concepts>
@@ -185,6 +185,7 @@ namespace jetio
         using ops_type = detail::string_view_ops<basic_nd_string_view, CharT, Traits>;
 
     public:
+        static constexpr end_guarantee guarantee = end_guarantee::determinable;
         using string_view_type = typename ops_type::string_view_type;
         using size_type = typename ops_type::size_type;
         using shortened_type = basic_nd_string_view;
@@ -250,6 +251,7 @@ namespace jetio
         using ops_type = detail::string_view_ops<basic_ns_string_view, CharT, Traits>;
 
     public:
+        static constexpr end_guarantee guarantee = end_guarantee::sentinel;
         using string_view_type = typename ops_type::string_view_type;
         using size_type = typename ops_type::size_type;
         using shortened_type = basic_ns_string_view;
@@ -318,6 +320,7 @@ namespace jetio
         using ops_type = detail::string_view_ops<basic_nt_string_view, CharT, Traits>;
 
     public:
+        static constexpr end_guarantee guarantee = end_guarantee::terminated;
         using string_view_type = typename ops_type::string_view_type;
         using size_type = typename ops_type::size_type;
         using shortened_type = basic_ns_string_view<CharT, Traits>;
@@ -381,18 +384,6 @@ namespace jetio
         /// The characters up to the terminator, which follows them.
         constexpr const CharT *c_str() const noexcept { return this->data(); }
     };
-
-    template <typename CharT, typename Traits>
-    inline constexpr end_guarantee end_guarantee_of<basic_nd_string_view<CharT, Traits>> =
-        end_guarantee::determinable;
-
-    template <typename CharT, typename Traits>
-    inline constexpr end_guarantee end_guarantee_of<basic_ns_string_view<CharT, Traits>> =
-        end_guarantee::sentinel;
-
-    template <typename CharT, typename Traits>
-    inline constexpr end_guarantee end_guarantee_of<basic_nt_string_view<CharT, Traits>> =
-        end_guarantee::terminated;
 
     // --- free functions on all the views ------------------------------------------------------
     // They build the new view with the tag assume, which for ns and nd costs a null check and

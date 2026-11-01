@@ -6,6 +6,6 @@
 #include <jetio/pseudo.hpp>
 #include <jetio/std/contract.hpp>
 #include <jetio/std/string_view.hpp>
-#include <jetio/std/string_view_guarantee.hpp>
+#include <jetio/std/string_view_concepts.hpp>
 #include <jetio/types.hpp>
 #include <jetio/version.hpp>

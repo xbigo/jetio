@@ -22,7 +22,7 @@ The types are templates over the character type, but this project uses only `cha
 
 ## Guarantee of a type
 
-`end_guarantee_of<T>` is an ordered enum, `none < determinable < sentinel < terminated`. The default is `terminated` for a type with a `c_str()` (or an ADL `get_c_str`) that converts to `std::basic_string_view`; specialize it to state the guarantee of another type or to withdraw it. The concepts are the conversion to `std::basic_string_view` plus the guarantee, and each names the weaker one, so overloads pick the most specific.
+`end_guarantee_of<T>` is an ordered enum, `none < determinable < sentinel < terminated`. The default is the static member `guarantee` of the type (the three views have it), else `terminated` for a type with a `c_str()` (or an ADL `get_c_str`) that converts to `std::basic_string_view`; specialize it to state the guarantee of another type or to withdraw it. The concepts are the conversion to `std::basic_string_view` plus the guarantee, and each names the weaker one, so overloads pick the most specific.
 
 `get_c_str(x)` is a customization point object: member `c_str()`, or `get_c_str(x)` found by ADL. The size always comes from the conversion to a string view; `data()` is not trusted to be terminated. For sizes in general, `std::ranges::size` is the standard extension point (`std::ranges::data` has none).
 

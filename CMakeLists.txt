@@ -59,7 +59,7 @@ target_sources(jetio INTERFACE
         include/jetio/std/contract.hpp
         include/jetio/std/string_view.hpp
         include/jetio/std/string_view_io.hpp
-        include/jetio/std/string_view_guarantee.hpp
+        include/jetio/std/string_view_concepts.hpp
         include/jetio/types.hpp
         include/jetio/version.hpp)
 target_compile_features(jetio INTERFACE cxx_std_23)

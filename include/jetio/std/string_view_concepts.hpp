@@ -9,8 +9,8 @@
 //   none          std::basic_string_view
 //
 // Each guarantee is stronger than all that follow. A type states its guarantee with
-// end_guarantee_of; a type with c_str() (or an ADL get_c_str) that converts to
-// std::basic_string_view is terminated by default.
+// end_guarantee_of, which by default is its static member `guarantee`; failing that, a type
+// with c_str() (or an ADL get_c_str) that converts to std::basic_string_view is terminated.
 
 #include <concepts>
 #include <cstddef>
@@ -131,7 +131,9 @@ namespace jetio
 
         template <typename T> constexpr end_guarantee default_end_guarantee() noexcept
         {
-            if constexpr (has_c_str<T>)
+            if constexpr (requires { T::guarantee; })
+                return T::guarantee;
+            else if constexpr (has_c_str<T>)
             {
                 if constexpr (std::convertible_to<const T &, std::basic_string_view<
                                                                  typename char_type_of<T>::type>>)

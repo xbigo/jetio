@@ -19,4 +19,4 @@ docs/            Documentation
 - When a compiled part appears, it is added under `src/` and linked from the `jetio` target, so the consumer-facing target name does not change.
 - Everything lives in namespace `jetio`; `jetio/jetio.hpp` includes all public headers.
 - Headers: `types.hpp`, `error.hpp`, `iocore.hpp` (protocol), `memory.hpp`, `pseudo.hpp`, `version.hpp`.
-- `include/jetio/std/` holds the language extensions, things the language or the standard library should have (today: `contract.hpp`, `string_view_guarantee.hpp`, `string_view.hpp` (nd, ns and nt), `string_view_io.hpp`). They do not depend on the rest of the library. Their namespace is `jetio` and their macros start with `JIO_`; a `jetio::std` namespace would hide the real `std`.
+- `include/jetio/std/` holds the language extensions, things the language or the standard library should have (today: `contract.hpp`, `string_view_concepts.hpp`, `string_view.hpp` (nd, ns and nt), `string_view_io.hpp`). They do not depend on the rest of the library. Their namespace is `jetio` and their macros start with `JIO_`; a `jetio::std` namespace would hide the real `std`.

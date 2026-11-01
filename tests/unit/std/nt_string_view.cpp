@@ -1,5 +1,5 @@
-#include <jetio/std/nt_string_view.hpp>
-#include <jetio/std/nt_string_view_io.hpp>
+#include <jetio/std/string_view.hpp>
+#include <jetio/std/string_view_io.hpp>
 
 #include <array>
 #include <format>
@@ -9,11 +9,9 @@
 #include <string>
 #include <string_view>
 
-#include "support/contract_guard.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 using namespace jetio;
-using jetio::test::contract_failure;
 
 namespace
 {
@@ -37,14 +35,6 @@ namespace
         operator std::string_view() const noexcept { return "x"; }
     };
 
-    // Promises a terminator and does not keep the promise.
-    struct breaks_its_promise
-    {
-        using value_type = char;
-        const char *c_str() const noexcept { return "abcd"; }
-        operator std::string_view() const noexcept { return std::string_view("abcd", 2); }
-    };
-
     template <typename A, typename B>
     concept equality_comparable_between = requires(A a, B b) { a == b; };
     template <typename A, typename B>
@@ -58,9 +48,6 @@ namespace jetio
 
 TEST_CASE("the guarantee of a type", "[nt_string_view][concepts]")
 {
-    static_assert(end_guarantee::none < end_guarantee::determinable);
-    static_assert(end_guarantee::determinable < end_guarantee::sentinel);
-    static_assert(end_guarantee::sentinel < end_guarantee::terminated);
 
     static_assert(!nd_string_view_like<std::string_view>);
     static_assert(string_view_convertible<std::string_view>);
@@ -136,32 +123,6 @@ TEST_CASE("a view from a type that is terminated", "[nt_string_view]")
     static_assert(!std::constructible_from<nt_string_view, std::nullptr_t, src_capacity_t>);
 }
 
-TEST_CASE("construction checks the invariant where it can be wrong", "[nt_string_view]")
-{
-    if constexpr (contract_level < 1)
-        SKIP("critical contract checks are off");
-
-    test::scoped_throwing_contract_handler handler;
-    const std::array<char, 3> unterminated{'a', 'b', 'c'};
-    const std::array<char, 3> terminated{'a', 'b', '\0'};
-
-    // no terminator within the capacity
-    CHECK_THROWS_AS(nt_string_view(unterminated.data(), src_capacity(3)), contract_failure);
-    CHECK_THROWS_AS(nt_string_view(terminated.data(), src_capacity(0)), contract_failure);
-    // a null pointer
-    CHECK_THROWS_AS(nt_string_view(static_cast<const char *>(nullptr), src_capacity(1)),
-                    contract_failure);
-    CHECK_THROWS_AS(nt_string_view(static_cast<const char *>(nullptr), 0, src_capacity(1)),
-                    contract_failure);
-    // the character at n is not the terminator, or n is not within the capacity
-    CHECK_THROWS_AS(nt_string_view(unterminated.data(), 2, src_capacity(3)), contract_failure);
-    CHECK_THROWS_AS(nt_string_view(terminated.data(), 2, src_capacity(2)), contract_failure);
-    CHECK_NOTHROW(nt_string_view(terminated.data(), 2, src_capacity(3)));
-
-    // a type that does not keep its promise
-    CHECK_THROWS_AS(nt_string_view(breaks_its_promise{}), contract_failure);
-}
-
 TEST_CASE("element access and the terminator", "[nt_string_view]")
 {
     const std::string s = "abc";
@@ -171,14 +132,6 @@ TEST_CASE("element access and the terminator", "[nt_string_view]")
     CHECK(view.front() == 'a');
     CHECK(view.back() == 'c');
     CHECK(view.data() == view.c_str());
-
-    if constexpr (contract_level >= 1)
-    {
-        test::scoped_throwing_contract_handler handler;
-        CHECK_THROWS_AS(view[4], contract_failure);
-        CHECK_THROWS_AS(nt_string_view().front(), contract_failure);
-        CHECK_THROWS_AS(nt_string_view().back(), contract_failure);
-    }
 }
 
 TEST_CASE("comparison looks at the characters only", "[nt_string_view]")
@@ -248,13 +201,6 @@ TEST_CASE("substr and rm_prefix return new views", "[nt_string_view]")
 
     static_assert(std::same_as<decltype(rm_prefix(view, 1)), nt_string_view>);
     static_assert(std::same_as<decltype(substr(view, 1)), nt_string_view>);
-
-    if constexpr (contract_level >= 1)
-    {
-        test::scoped_throwing_contract_handler handler;
-        CHECK_THROWS_AS(rm_prefix(view, 7), contract_failure);
-        CHECK_THROWS_AS(substr(view, 7), contract_failure);
-    }
 }
 
 TEST_CASE("swap", "[nt_string_view]")

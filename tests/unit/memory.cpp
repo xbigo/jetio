@@ -7,11 +7,9 @@
 #include <numeric>
 #include <vector>
 
-#include "support/contract_guard.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 using namespace jetio;
-using jetio::test::contract_failure;
 
 namespace
 {
@@ -190,17 +188,6 @@ TEST_CASE("views", "[memory]")
         CHECK(ec == std::errc::invalid_argument);
         CHECK(device.size() == 20);
     }
-
-    SECTION("an invalid range violates the contract")
-    {
-        if constexpr (contract_level >= 1)
-        {
-            test::scoped_throwing_contract_handler handler;
-            CHECK_THROWS_AS(view_rd(device, {5, 2}), contract_failure);
-            CHECK_THROWS_AS(view_wr(device, {-1, 2}), contract_failure);
-            CHECK_THROWS_AS(device.view_rd({5, 2}), contract_failure);
-        }
-    }
 }
 
 TEST_CASE("an error code is cleared on success", "[memory]")
@@ -309,14 +296,6 @@ TEST_CASE("seek_forward", "[memory]")
     CHECK(seek_forward(device, 7) == 7);
     CHECK(seek_forward(device, 7) == 7);
     CHECK(device.offset() == 7);
-
-    if constexpr (contract_level >= 2)
-    {
-        test::scoped_throwing_contract_handler handler;
-        CHECK_THROWS_AS(device.seek_forward(3), contract_failure);
-        if constexpr (contract_level >= 3)
-            CHECK_THROWS_AS(seek_forward(device, 3), contract_failure);
-    }
 }
 
 namespace

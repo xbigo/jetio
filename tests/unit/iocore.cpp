@@ -2,24 +2,12 @@
 
 #include <vector>
 
-#include "support/contract_guard.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 using namespace jetio;
-using jetio::test::contract_failure;
 
 namespace
 {
-    // Violates the protocol on purpose.
-    struct bad_device
-    {
-        mutable_buffer read(mutable_buffer buf, error_code_ptr) { return buf.last(buf.size() / 2); }
-        const_buffer write(const_buffer buf, error_code_ptr) { return buf.first(buf.size() / 2); }
-        buffer_rd_view view_rd(offset64_range, error_code_ptr) { return {}; }
-        buffer_wr_view view_wr(offset64_range, error_code_ptr) { return {}; }
-        size64_t size(error_code_ptr) { return 0; }
-    };
-
     // Only the operations of a plain stream.
     struct stream_device
     {
@@ -69,29 +57,7 @@ TEST_CASE("address works for views and for pointers to views", "[iocore]")
     CHECK(address(buffer_wr_view(mutable_buffer(data))).data() == data.data());
 }
 
-TEST_CASE("the protocol checks the postconditions of a device", "[iocore]")
-{
-    if constexpr (contract_level < 2)
-        SKIP("default contract checks are off");
-
-    test::scoped_throwing_contract_handler handler;
-    bad_device device;
-    std::vector<std::byte> data(4);
-
-    CHECK_THROWS_AS(read(device, data), contract_failure);
-    CHECK_THROWS_AS(write(device, data), contract_failure);
-    CHECK_THROWS_AS(view_rd(device, {0, 4}), contract_failure);
-    CHECK_THROWS_AS(view_wr(device, {0, 4}), contract_failure);
-    CHECK_THROWS_AS(view_rd(device, {4, 0}), contract_failure);
-
-    // unknown end: the size of the view is not constrained
-    CHECK_NOTHROW(view_rd(device, {0, unknown_offset}));
-    // an error excuses the views
-    error_code ec = std::make_error_code(std::errc::io_error);
-    CHECK_NOTHROW(view_rd(device, {0, 4}, &ec));
-}
-
-TEST_CASE("a conforming device passes the checks", "[iocore]")
+TEST_CASE("the protocol functions work on a conforming device", "[iocore]")
 {
     memory_device<> device;
     std::vector<std::byte> data(16);

@@ -21,7 +21,6 @@
 //   - Exception safety: a device is always left valid, destructible and usable. Individual
 //     operations document anything stronger. An operation that reports an error has made
 //     progress only where it says so.
-//   - Operations with a precondition are not noexcept.
 
 #include <jetio/error.hpp>
 #include <jetio/std/contract.hpp>

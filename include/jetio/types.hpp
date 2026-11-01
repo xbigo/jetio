@@ -45,7 +45,7 @@ namespace jetio
 
     /// @pre is_valid_range(range)
     /// @return unknown_size if the end of the range is unknown, otherwise end - begin
-    constexpr size64_t range_size(offset64_range range)
+    constexpr size64_t range_size(offset64_range range) noexcept
     {
         JIO_Expects(is_valid_range(range));
         return range.end == unknown_offset ? unknown_size
@@ -63,21 +63,21 @@ namespace jetio
     }
 
     /// @pre in_size_t_range(n)
-    constexpr std::size_t to_size_t(size64_t n)
+    constexpr std::size_t to_size_t(size64_t n) noexcept
     {
         JIO_Expects_critical(in_size_t_range(n));
         return static_cast<std::size_t>(n);
     }
 
     /// @pre in_size_t_range(n)
-    constexpr std::size_t offset_to_size_t(offset64_t n)
+    constexpr std::size_t offset_to_size_t(offset64_t n) noexcept
     {
         JIO_Expects_critical(in_size_t_range(n));
         return static_cast<std::size_t>(n);
     }
 
     /// @pre std::in_range<std::ptrdiff_t>(n)
-    constexpr std::ptrdiff_t to_ptrdiff_t(offset64_t n)
+    constexpr std::ptrdiff_t to_ptrdiff_t(offset64_t n) noexcept
     {
         JIO_Expects_critical(std::in_range<std::ptrdiff_t>(n));
         return static_cast<std::ptrdiff_t>(n);

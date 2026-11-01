@@ -40,6 +40,14 @@ namespace jetio
         return {elements};
     }
 
+    /// Marks a construction from a plain string view, whose guarantee the compiler cannot see
+    /// and the program cannot check: the caller promises it, as the precondition says.
+    struct assume_t
+    {
+        explicit assume_t() = default;
+    };
+    inline constexpr assume_t assume{};
+
     /// A pointer to constant characters, as returned by c_str().
     template <typename T>
     concept c_str_pointer = std::is_pointer_v<T> && character<std::remove_pointer_t<T>> &&
@@ -88,6 +96,11 @@ namespace jetio
         sentinel,
         terminated
     };
+
+    // The order is the strength: each guarantee is stronger than all the ones before it.
+    static_assert(end_guarantee::none < end_guarantee::determinable);
+    static_assert(end_guarantee::determinable < end_guarantee::sentinel);
+    static_assert(end_guarantee::sentinel < end_guarantee::terminated);
 
     namespace detail
     {

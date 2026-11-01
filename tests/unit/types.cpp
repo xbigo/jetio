@@ -2,11 +2,9 @@
 
 #include <limits>
 
-#include "support/contract_guard.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 using namespace jetio;
-using jetio::test::contract_failure;
 
 TEST_CASE("valid ranges", "[types]")
 {
@@ -30,13 +28,7 @@ TEST_CASE("range size", "[types]")
     static_assert(range_size({3, 3}) == 0);
     static_assert(range_size({3, unknown_offset}) == unknown_size);
     static_assert(unknown_size == std::numeric_limits<offset64_t>::max());
-
-    if constexpr (contract_level >= 2)
-    {
-        test::scoped_throwing_contract_handler handler;
-        CHECK_THROWS_AS(range_size({5, 4}), contract_failure);
-        CHECK_THROWS_AS(range_size({-1, 4}), contract_failure);
-    }
+    SUCCEED();
 }
 
 TEST_CASE("conversion to platform types", "[types]")
@@ -48,13 +40,7 @@ TEST_CASE("conversion to platform types", "[types]")
     static_assert(offset_to_size_t(42) == 42);
     static_assert(to_ptrdiff_t(-42) == -42);
 
-    if constexpr (sizeof(std::size_t) == 4)
-    {
-        CHECK(!in_size_t_range(size64_t{1} << 32));
-    }
-    if constexpr (contract_level >= 1 && sizeof(std::size_t) == 4)
-    {
-        test::scoped_throwing_contract_handler handler;
-        CHECK_THROWS_AS(to_size_t(size64_t{1} << 32), contract_failure);
-    }
+    // where size_t has 32 bits, a 64 bit size can be too large
+    static_assert(sizeof(std::size_t) != 4 || !in_size_t_range(size64_t{1} << 32));
+    SUCCEED();
 }

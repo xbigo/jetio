@@ -3,7 +3,6 @@
 #include <array>
 #include <vector>
 
-#include "support/contract_guard.hpp"
 #include <catch2/catch_test_macros.hpp>
 
 using namespace jetio;
@@ -59,15 +58,6 @@ TEST_CASE("fill_device repeats its pattern", "[pseudo]")
             for (std::size_t i = 0; i < n; ++i)
                 CHECK(out[i] == pattern[(start + i) % 3]);
         }
-    }
-}
-
-TEST_CASE("fill_device needs a pattern", "[pseudo]")
-{
-    if constexpr (contract_level >= 1)
-    {
-        test::scoped_throwing_contract_handler handler;
-        CHECK_THROWS_AS(fill_device(const_buffer{}), test::contract_failure);
     }
 }
 

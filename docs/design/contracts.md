@@ -49,7 +49,7 @@ A check is **critical** if all of these hold:
 - A violation would otherwise cause memory unsafety, undefined behavior, or data corruption that cannot be detected later. Typical: it guards pointer arithmetic or a narrowing conversion that feeds into it, or a division.
 - The check is O(1) and does not call into a device.
 
-Everything else is a plain contract. A check that is expensive or calls into a device is **audit**. When in doubt, use the plain macro and say in the review why it is not critical.
+Everything else is a plain contract. A check whose violation would be unsafe but which costs more than O(1) cannot be critical; it is an audit check (the terminator that an ns view needs behind its end, when it is built from a pointer and a length). A check that is expensive or calls into a device is **audit**. When in doubt, use the plain macro and say in the review why it is not critical.
 
 The critical checks today: validity of the range given to `memory_device::view_rd` and `view_wr`, the narrowing conversions `to_size_t`, `offset_to_size_t` and `to_ptrdiff_t`, and the pattern of `fill_device` not being empty.
 
@@ -65,9 +65,25 @@ A violated contract means the program is in an undefined state, so there is no w
 
 A handler may throw. That exists for white-box tests, of the facility itself and of functions with preconditions, where the test must get past the violation: their handler throws and the test catches the exception. Production code should terminate.
 
-## noexcept
+## Roles
 
-A function with a precondition is not `noexcept`, because a violation may throw from a test handler, and a function that is `noexcept` has no precondition. Functions with a wide contract (`offset`, `size`, `is_eof`, most pseudo device operations) are `noexcept` where nothing can throw.
+The API designer writes the contract of a function: precondition, postcondition, what it throws. The implementer decides which checks to make: critical, default, audit, all or none, on the grounds of cost and of the confidence in the implementation. These are two roles, even when one person has both, and in generic and object oriented code they are often different people; the project supports both. So the checks are the implementer's affair, and they are not part of the contract and not tested as such.
+
+## Errors, bugs and noexcept
+
+Checking a precondition is the right of the callee, not its duty, and nothing may depend on it. A caller or a test that needs a violation to be detected has tied the promise to the check; and a precondition that cannot be checked would then not be allowed at all (`strlen` needs memory that can be read). So a function is not given `noexcept(false)` in order to let a violation handler throw out of it.
+
+`noexcept` is part of the specification, and not for speed: it marks the phase in which a function can be used when writing exception safe code, which computes the target state where something can throw and switches to it where nothing can, and it is how the basic, strong and nothrow guarantees are told apart. Without it only the code of the implementation says whether a function throws.
+
+A violated precondition is a bug in the caller, a violated postcondition a bug in the callee. A bug is not an error, and it is never reported as an exception: it ends the program (the handler does not return), because finding a bug costs more than fixing it, and an exception would destroy the evidence, run destructors on a state the bug may have corrupted, and let a handler carry on. So `std::logic_error` and its relatives, which the standard defines as errors such as "violating logical preconditions or class invariants", have no place here; `at()` of the standard is a function with a wide contract that reports an out of range index as a specified error, which is something else than a violated precondition.
+
+An exception is thrown if and only if the precondition holds and the postcondition cannot be reached. So whether a function is `noexcept` is not a policy but follows from its specification: it is `noexcept` if every value of the domain that the precondition leaves can be mapped to a value of the range, the environment (memory, IO) included. `operator[]`, `front` and `back` of a view are total on their domain, so they are `noexcept`; functions that report failures by throwing `io_error` (the ones that take an `error_code_ptr`) are not. A template function is `noexcept` conditionally on the operations it uses.
+
+This differs from the Lakos rule of the standard library (no `noexcept` on a function with a narrow contract, N3279, [P2861](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2023/p2861r0.pdf)), which keeps the freedom of an implementation to throw on a violation and makes negative testing with throwing assertion handlers possible. But a function that throws on a violation has a specified behavior for those inputs: its contract is wide, and what is called a precondition is none. Implementations do not throw there (libc++ traps in its production hardening modes and terminates in its debug mode), and P0709 (Sutter) states that precondition violations should not be reported as exceptions or error codes, and that `std::logic_error` and its relatives should never be thrown for them. In P2900 a handler that throws from a `noexcept` function means `std::terminate`. No setting of GCC or Clang turns that termination into an exception for tests (`-fno-enforce-eh-specs` of GCC does not, Clang has no such flag), and a macro that removes `noexcept` in test builds is what libc++ tried and gave up. Here the handler never returns and the production handler terminates, so the reasons of the rule do not apply; what follows is that no test observes the violation of a precondition of a function, see [testing](testing.md).
+
+## Constant evaluation
+
+A satisfied contract costs nothing in a constant expression. A violated one makes the expression not constant, a compile error, because the handler is not `constexpr`, if the contract is checked at that level.
 
 ## Exception safety
 

@@ -67,7 +67,7 @@ namespace jetio
     public:
         /// @pre !pattern.empty()
         /// @pre the memory of pattern outlives the device
-        explicit fill_device(const_buffer pattern) : m_pattern(pattern)
+        explicit constexpr fill_device(const_buffer pattern) noexcept : m_pattern(pattern)
         {
             JIO_Expects_critical(!pattern.empty());
         }

@@ -46,6 +46,9 @@ Checked by the free functions, for every device. These are plain checks: debug b
 | `fill_device` | `pseudo.hpp` | Reads a repeated pattern, unknown size |
 | `null_device` | `pseudo.hpp` | Discards writes, size 0 |
 | `empty_device` | `pseudo.hpp` | No data, offset 0 |
+| `multiplex_device<Device>` | `adaptor.hpp` | Own offset over a shared random access device |
+| `shift_device<Device>` | `adaptor.hpp` | Hides the first `shift` bytes of a forward access device |
+| `sub_device<Device>` | `adaptor.hpp` | Window `[begin, end)` of a random access device, own offset |
 
 ### Memory represents
 
@@ -53,6 +56,16 @@ Checked by the free functions, for every device. These are plain checks: debug b
 
 A write to a fixed-size represent stores what fits, then reports `errc::no_space_on_device` and returns the rest. Every other memory device operation gives the strong guarantee.
 
+### Adaptors
+
+They refer to the wrapped device and do not own it, and provide the capabilities of the wrapped device that survive the change (their members are constrained by the concepts of the wrapped device).
+
+- `multiplex_device`: before each operation the device is moved to the own offset, afterwards the own offset advances by what was read or written. An operation that throws leaves the own offset unchanged. `is_eof` is not `const`: it moves the wrapped device.
+- `shift_device`: the offset is the one of the device less `shift`, or 0 while the device has not reached `shift`; the first read, write or `is_eof` moves the device forward to `shift`. A device shorter than `shift` has size 0, and truncating to 0 makes it `shift` bytes long. A seek, truncation or view range that does not fit with `shift` added reports `errc::value_too_large` (views return an empty view).
+- `sub_device`: needs a valid window with a known end (`is_valid_range(section) && section.end != unknown_offset`) and keeps an own offset, which may lie beyond the end (nothing is read there). A write past the end stores what fits and then reports `errc::no_space_on_device`. A view range beyond the window reports `errc::invalid_argument`; an unknown end is the end of the window. `truncate` accepts only the size of the window. If the device is shorter than the window, reads return less. Windows may overlap and share a device.
+
+The views of `shift_device` and `sub_device` are the views of the wrapped device, and an adaptor that reports an error itself returns an empty view, so the view type must be default constructible.
+
 ## Not yet migrated
 
-The adaptors of ape (`multiplex_device`, `shift_device`, `sub_device`, and the cache views that emulate views over readers and writers) are not part of the library yet. They are to be redesigned with this contract model.
+The cache views of ape (`cache_rd_view`, `reader_to_view`, `cache_wr_view`, `writer_to_view`, which emulate views over readers and writers) are not part of the library yet. How `cache_wr_view` writes back is open.

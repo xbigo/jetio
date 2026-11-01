@@ -1,5 +1,6 @@
 #pragma once
 
+#include <jetio/adaptor.hpp>
 #include <jetio/error.hpp>
 #include <jetio/iocore.hpp>
 #include <jetio/memory.hpp>

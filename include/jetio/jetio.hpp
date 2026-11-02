@@ -8,6 +8,7 @@
 #include <jetio/memory.hpp>
 #include <jetio/pseudo.hpp>
 #include <jetio/std/contract.hpp>
+#include <jetio/std/fixed_vector.hpp>
 #include <jetio/std/string_view.hpp>
 #include <jetio/std/string_view_concepts.hpp>
 #include <jetio/std/utility.hpp>

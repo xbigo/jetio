@@ -12,3 +12,4 @@ Docs record the current state and the decisions behind it, not how we got there.
   - [Design by contract](design/contracts.md)
   - [IO protocol](design/io-protocol.md)
   - [String views with end guarantees](design/string-views.md)
+  - [fixed_vector](design/fixed-vector.md)

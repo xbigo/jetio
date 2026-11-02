@@ -1,13 +1,18 @@
 #pragma once
 
 // Pseudo devices that have no storage: [ sequence, random_access, forward_access ] and as listed
-// per device. None of them can fail, so none reports an error.
+// per device. None of them can fail, so none reports an error. (bad_device.hpp has the one that
+// fails on demand.)
 
 #include <jetio/iocore.hpp>
 
 #include <algorithm>
+#include <concepts>
 #include <cstddef>
 #include <system_error>
+#include <tuple>
+#include <type_traits>
+#include <utility>
 
 namespace jetio
 {
@@ -93,6 +98,106 @@ namespace jetio
 
     private:
         const_buffer m_pattern;
+    };
+
+    namespace detail
+    {
+        /// g(offset) gives the byte at that offset, whatever was asked before.
+        template <typename G>
+        concept positional_generator = std::invocable<G &, size64_t> &&
+                                       std::same_as<std::invoke_result_t<G &, size64_t>, std::byte>;
+
+        /// g() gives the next byte.
+        template <typename G>
+        concept sequential_generator =
+            std::invocable<G &> && std::same_as<std::invoke_result_t<G &>, std::byte>;
+    } // namespace detail
+
+    /// Reads the bytes that a generator makes, forever. [ reader, is_eofer, sizer ]
+    /// The generator is called as g(offset), a positional generator, or as g(), a sequential one,
+    /// and gives a std::byte. A positional generator must give the same byte for the same offset,
+    /// which makes the device random access, and a read of it the same on every run. A sequential
+    /// generator (a random number engine, for example) can only go on, so the device is forward
+    /// access: it skips bytes by making and dropping them. If a generator can be called both ways,
+    /// it is positional.
+    /// @pre the generator does not throw
+    template <typename Generator>
+        requires detail::positional_generator<Generator> || detail::sequential_generator<Generator>
+    class generator_device
+    {
+    public:
+        static constexpr bool positional = detail::positional_generator<Generator>;
+
+        explicit generator_device(Generator generator) noexcept(
+            std::is_nothrow_move_constructible_v<Generator>)
+            : m_generator(std::move(generator))
+        {
+        }
+
+        size64_t offset(error_code_ptr ec = nullptr) const noexcept
+        {
+            clear_error(ec);
+            return m_pos;
+        }
+
+        bool is_eof(error_code_ptr ec = nullptr) const noexcept
+        {
+            clear_error(ec);
+            return false;
+        }
+
+        size64_t size(error_code_ptr ec = nullptr) const noexcept
+        {
+            clear_error(ec);
+            return unknown_size;
+        }
+
+        /// Positional generator only.
+        size64_t seek(size64_t off, error_code_ptr ec = nullptr) noexcept
+            requires positional
+        {
+            clear_error(ec);
+            return m_pos = off;
+        }
+
+        /// Moves the offset forward; a sequential generator makes and drops the bytes in between.
+        /// @pre off >= offset()
+        size64_t seek_forward(size64_t off, error_code_ptr ec = nullptr)
+        {
+            JIO_Expects(off >= m_pos);
+            clear_error(ec);
+            if constexpr (positional)
+                m_pos = off;
+            else
+            {
+                for (; m_pos < off; ++m_pos)
+                    std::ignore = m_generator();
+            }
+            return m_pos;
+        }
+
+        /// @return buf, filled with the bytes of the generator
+        mutable_buffer read(mutable_buffer buf, error_code_ptr ec = nullptr)
+        {
+            clear_error(ec);
+            if constexpr (positional)
+            {
+                size64_t at = m_pos;
+                for (std::byte &b : buf)
+                    b = m_generator(at++);
+            }
+            else
+            {
+                for (std::byte &b : buf)
+                    b = m_generator();
+            }
+            m_pos += buf.size();
+            return buf;
+        }
+
+    private:
+        Generator m_generator;
+        size64_t m_pos = 0;
     };
 
     /// Discards everything written, like /dev/null. The size is always 0, whatever the

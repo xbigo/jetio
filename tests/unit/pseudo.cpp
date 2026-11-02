@@ -88,3 +88,48 @@ TEST_CASE("empty_device has no data", "[pseudo]")
     CHECK(device.is_eof());
     CHECK(device.size() == 0);
 }
+
+TEST_CASE("generator_device with a positional generator is random access", "[pseudo]")
+{
+    auto generator = [](size64_t off) { return static_cast<std::byte>(off * 7); };
+    generator_device device(generator);
+    static_assert(reader<decltype(device)> && random_access<decltype(device)> &&
+                  sizer<decltype(device)> && is_eofer<decltype(device)> &&
+                  !writer<decltype(device)>);
+
+    std::vector<std::byte> out(5);
+    CHECK(read(device, out).size() == 5);
+    CHECK(device.offset() == 5);
+    for (std::size_t i = 0; i < 5; ++i)
+        CHECK(out[i] == static_cast<std::byte>(i * 7));
+
+    // the same offset gives the same bytes, however it is reached
+    std::vector<std::byte> again(3);
+    seek(device, 2);
+    CHECK(read(device, again).size() == 3);
+    CHECK(again[0] == out[2]);
+    CHECK(again[2] == out[4]);
+    CHECK(device.size() == unknown_size);
+    CHECK(!device.is_eof());
+
+    CHECK(device.seek_forward(10) == 10);
+    CHECK(device.offset() == 10);
+}
+
+TEST_CASE("generator_device with a sequential generator only goes forward", "[pseudo]")
+{
+    int next = 0;
+    generator_device device([&next] { return static_cast<std::byte>(next++); });
+    static_assert(reader<decltype(device)> && forward_access<decltype(device)> &&
+                  !random_access<decltype(device)>);
+
+    std::vector<std::byte> out(3);
+    CHECK(read(device, out).size() == 3);
+    CHECK(out == std::vector<std::byte>{std::byte{0}, std::byte{1}, std::byte{2}});
+
+    CHECK(seek_forward(device, 6) == 6);
+    CHECK(device.offset() == 6);
+    CHECK(read(device, out).size() == 3);
+    CHECK(out == std::vector<std::byte>{std::byte{6}, std::byte{7}, std::byte{8}});
+    CHECK(seek_forward(device, 9) == 9); // already there
+}

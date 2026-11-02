@@ -51,11 +51,17 @@ Checked by the operations of namespace `jetio`, for every device, whether it pro
 | `memory_device<Represent>` | `memory.hpp` | Everything the represent allows |
 | `zero_device` | `pseudo.hpp` | Reads zeros, unknown size |
 | `fill_device` | `pseudo.hpp` | Reads a repeated pattern, unknown size |
+| `generator_device<Generator>` | `pseudo.hpp` | Reads the bytes of a generator, unknown size. `g(offset)` (positional, same byte for the same offset): random access. `g()` (sequential, e.g. a random number engine): forward access, skips by making and dropping bytes |
 | `null_device` | `pseudo.hpp` | Discards writes, size 0 |
 | `empty_device` | `pseudo.hpp` | No data, offset 0 |
+| `bad_device<Policy>` | `bad_device.hpp` | A memory device that asks the policy before each operation: it may shorten a read or write, change the arguments, or give an error |
 | `multiplex_device<Device>` | `adaptor.hpp` | Own offset over a shared random access device |
 | `shift_device<Device>` | `adaptor.hpp` | Hides the first `shift` bytes of a forward access device |
 | `sub_device<Device>` | `adaptor.hpp` | Window `[begin, end)` of a random access device, own offset |
+
+### Pseudo devices
+
+`bad_device` is for tests of code that must cope with errors and short transfers. The policy has a member function for each operation it judges (`read(mutable_buffer&)`, `write(const_buffer&)`, `seek`, `truncate`, `sync`, `view_rd`, `view_wr`), takes the arguments by reference and returns an `error_code`; an error is reported and the operation does not happen. Policies in `jetio::bad`: `after_bytes` (a number of bytes through, then errors), `on_call` (the n-th operation fails once), `at_most` (short reads and writes). It does not wrap another device: a policy over a given device would be a test of that device, and limiting a rate is an adaptor.
 
 ### Memory represents
 

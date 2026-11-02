@@ -2,6 +2,7 @@
 
 #include <jetio/adaptor.hpp>
 #include <jetio/algorithm.hpp>
+#include <jetio/bad_device.hpp>
 #include <jetio/cache_view.hpp>
 #include <jetio/error.hpp>
 #include <jetio/iocore.hpp>

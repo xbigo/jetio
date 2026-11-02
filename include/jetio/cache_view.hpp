@@ -203,7 +203,13 @@ namespace jetio
             jetio::seek(*m_device, static_cast<size64_t>(m_pos), ec);
             if (has_error(ec))
                 return;
-            jetio::write(*m_device, m_data, ec);
+            // write may take less than it is given: write the rest, stop at the first error
+            for (const_buffer rest = m_data; !rest.empty();)
+            {
+                rest = jetio::write(*m_device, rest, ec);
+                if (has_error(ec))
+                    return;
+            }
         }
 
         Device *m_device = nullptr;

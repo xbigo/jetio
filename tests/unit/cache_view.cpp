@@ -226,6 +226,44 @@ namespace
     };
 } // namespace
 
+namespace
+{
+    /// Takes at most two bytes per write, as a socket may.
+    class short_write_device
+    {
+    public:
+        const_buffer write(const_buffer buf, error_code_ptr ec = nullptr)
+        {
+            const std::size_t n = std::min<std::size_t>(buf.size(), 2);
+            const const_buffer rest = jetio::write(m_device, buf.first(n), ec);
+            return buf.last(buf.size() - n + rest.size());
+        }
+        size64_t offset(error_code_ptr ec = nullptr) const { return m_device.offset(ec); }
+        size64_t seek(size64_t off, error_code_ptr ec = nullptr) { return m_device.seek(off, ec); }
+        memory_device<> &memory() { return m_device; }
+
+    private:
+        memory_device<> m_device = device_of(8);
+    };
+} // namespace
+
+TEST_CASE("the destructor writes everything to a device that takes less per write", "[cache_view]")
+{
+    short_write_device device;
+    writer_to_view writable(device);
+    error_code ec;
+    {
+        auto view = view_wr(writable, {1, 6}, &ec);
+        for (std::size_t i = 0; i < 5; ++i)
+            address(view)[i] = static_cast<std::byte>(50 + i);
+    }
+    CHECK(!ec);
+    seek(device.memory(), 1);
+    std::vector<std::byte> out(5);
+    CHECK(read(device.memory(), out).size() == 5);
+    CHECK(out == bytes(5, 50));
+}
+
 TEST_CASE("an unknown end needs a device that knows its size", "[cache_view]")
 {
     nosize_device device;

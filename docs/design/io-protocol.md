@@ -40,7 +40,7 @@ Checked by the operations of namespace `jetio`, for every device, whether it pro
 | Operation | Contract |
 | --- | --- |
 | `read` | Result is a prefix of the buffer. It may be shorter than the buffer, but it is empty only for an empty buffer, at the end of data or after an error (only the prefix is checked) |
-| `write` | Result is the unwritten suffix of the buffer, not empty only after an error |
+| `write` | Result is the unwritten suffix of the buffer. It may be non empty without an error, but it is the whole buffer only for an empty buffer or after an error (only the suffix is checked) |
 | `view_rd`, `view_wr` | Precondition `is_valid_range(rng)`; unless an error occurred, the view has `range_size(rng)` bytes when the end is known |
 | `seek_forward` | Precondition (audit): target is not before the current offset |
 
@@ -69,7 +69,7 @@ A write to a fixed-size represent stores what fits, then reports `errc::no_space
 
 A `cache_wr_view` writes its bytes to the device when it is destroyed, as well as it can: the view keeps the `ec` that `view_wr` was given and the destructor, like any other operation, stores the result there (cleared on success); without an `ec` a failure is dropped and nothing is thrown. A view that `view_wr` could not make (it reports the error and returns an empty view) writes nothing. To see a failure, pass an `ec` and look at it after the view is destroyed; the `ec` must outlive the view. There is no `commit` operation, and whether the bytes reach the device before the view is destroyed is implementation defined. The protocol does not aim at strict durability: `sync` is its coarse way to make data durable, and code that needs control of each write uses a concrete device, where it has the `ec` of every operation.
 
-`read_full` (`algorithm.hpp`) reads until the buffer is full, the data ends or an error occurs, since `read` may return less.
+`read_full` (`algorithm.hpp`) reads until the buffer is full, the data ends or an error occurs, since `read` may return less. `write` may take less than it is given as well (a socket does), so a caller that must write everything calls it again with the unwritten rest, and stops at the first error. What `write` does with an empty buffer is up to the device, which does not block; doing nothing is the simplest.
 
 ### Adaptors
 

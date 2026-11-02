@@ -156,8 +156,10 @@ namespace jetio
 
     /// Writes buf at the current offset and advances the offset by the number of bytes
     /// written.
-    /// @return the part of buf that was not written, always a suffix of buf. It is not empty
-    ///         only after an error.
+    /// @return the part of buf that was not written, always a suffix of buf. It may be
+    ///         non empty without an error (a device need not take all of buf), but then
+    ///         something was written: it is the whole of buf only if buf is empty or after an
+    ///         error. What an empty buf does is up to the device, which does not block.
     /// @post result.data() + result.size() == buf.data() + buf.size() && result.size() <=
     /// buf.size()
     inline constexpr detail::write_op::fn write{};

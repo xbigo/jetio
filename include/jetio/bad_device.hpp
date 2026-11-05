@@ -14,23 +14,26 @@
 
 namespace jetio
 {
-    /// A memory device whose operations ask the policy first. [ the capabilities of
+    /// A memory device whose operations are handed to the policy. [ the capabilities of
     /// memory_device<> ]
     ///
-    /// The policy has a member function for each operation it wants to judge, and the others pass.
-    /// It gets the arguments by reference, and returns an error code:
+    /// The policy has a member function for each operation it takes over, with the arguments of
+    /// the operation after the device, and decides what happens: whether and how the device does
+    /// it, what is reported, what is returned. An operation the policy has no function for goes
+    /// to the device.
     ///
-    ///   error_code read(mutable_buffer &buf)        error_code write(const_buffer &buf)
-    ///   error_code seek(size64_t &off)              error_code truncate(size64_t &new_size)
-    ///   error_code sync()
-    ///   error_code view_rd(offset64_range &rng)     error_code view_wr(offset64_range &rng)
+    ///   mutable_buffer read(memory_device<> &, mutable_buffer buf, error_code_ptr ec)
+    ///   const_buffer write(memory_device<> &, const_buffer buf, error_code_ptr ec)
+    ///   size64_t seek(memory_device<> &, size64_t off, error_code_ptr ec)
+    ///   size64_t seek_forward(memory_device<> &, size64_t off, error_code_ptr ec)
+    ///   void sync(memory_device<> &, error_code_ptr ec)
+    ///   size64_t truncate(memory_device<> &, size64_t new_size, error_code_ptr ec)
+    ///   buffer_rd_view view_rd(memory_device<> &, offset64_range rng, error_code_ptr ec)
+    ///   buffer_wr_view view_wr(memory_device<> &, offset64_range rng, error_code_ptr ec)
     ///
-    /// An error is reported, like the device would, and the operation does not happen. Without
-    /// one, the operation happens with the arguments as the policy left them: it may have made
-    /// `buf` shorter (the first bytes of it) for a short read or write, or changed the others. A
-    /// policy keeps its own record, of the calls for example. The queries offset, is_eof and size
-    /// are not asked.
-    /// @pre a policy does not make a non empty buf empty without an error
+    /// and, as `const` functions that get a `const` device, offset, is_eof and size. Without a
+    /// seek_forward of its own, a seek_forward goes to the seek of the policy. A policy keeps its
+    /// own record, of the calls for example.
     template <typename Policy> class bad_device
     {
     public:
@@ -46,104 +49,95 @@ namespace jetio
         Policy &policy() noexcept { return m_policy; }
         const Policy &policy() const noexcept { return m_policy; }
 
-        size64_t offset(error_code_ptr ec = nullptr) const noexcept
+        size64_t offset(error_code_ptr ec = nullptr) const
         {
-            return jetio::offset(m_device, ec);
+            if constexpr (requires { m_policy.offset(m_device, ec); })
+                return m_policy.offset(m_device, ec);
+            else
+                return jetio::offset(m_device, ec);
         }
-        bool is_eof(error_code_ptr ec = nullptr) const noexcept
+
+        bool is_eof(error_code_ptr ec = nullptr) const
         {
-            return jetio::is_eof(m_device, ec);
+            if constexpr (requires { m_policy.is_eof(m_device, ec); })
+                return m_policy.is_eof(m_device, ec);
+            else
+                return jetio::is_eof(m_device, ec);
         }
-        size64_t size(error_code_ptr ec = nullptr) const noexcept
+
+        size64_t size(error_code_ptr ec = nullptr) const
         {
-            return jetio::size(m_device, ec);
+            if constexpr (requires { m_policy.size(m_device, ec); })
+                return m_policy.size(m_device, ec);
+            else
+                return jetio::size(m_device, ec);
         }
 
         size64_t seek(size64_t off, error_code_ptr ec = nullptr)
         {
-            if constexpr (requires { m_policy.seek(off); })
-            {
-                if (refused_(ec, m_policy.seek(off)))
-                    return m_device.offset();
-            }
-            return jetio::seek(m_device, off, ec);
+            if constexpr (requires { m_policy.seek(m_device, off, ec); })
+                return m_policy.seek(m_device, off, ec);
+            else
+                return jetio::seek(m_device, off, ec);
+        }
+
+        size64_t seek_forward(size64_t off, error_code_ptr ec = nullptr)
+        {
+            if constexpr (requires { m_policy.seek_forward(m_device, off, ec); })
+                return m_policy.seek_forward(m_device, off, ec);
+            else
+                return seek(off, ec);
         }
 
         mutable_buffer read(mutable_buffer buf, error_code_ptr ec = nullptr)
         {
-            mutable_buffer allowed = buf;
-            if constexpr (requires { m_policy.read(allowed); })
-            {
-                if (refused_(ec, m_policy.read(allowed)))
-                    return buf.first(0);
-                JIO_Expects(detail::is_prefix(allowed, buf) && (!allowed.empty() || buf.empty()));
-            }
-            return jetio::read(m_device, allowed, ec);
+            if constexpr (requires { m_policy.read(m_device, buf, ec); })
+                return m_policy.read(m_device, buf, ec);
+            else
+                return jetio::read(m_device, buf, ec);
         }
 
         const_buffer write(const_buffer buf, error_code_ptr ec = nullptr)
         {
-            const_buffer allowed = buf;
-            if constexpr (requires { m_policy.write(allowed); })
-            {
-                if (refused_(ec, m_policy.write(allowed)))
-                    return buf;
-                JIO_Expects(detail::is_prefix(allowed, buf) && (!allowed.empty() || buf.empty()));
-            }
-            const const_buffer rest = jetio::write(m_device, allowed, ec);
-            return buf.last(buf.size() - (allowed.size() - rest.size()));
+            if constexpr (requires { m_policy.write(m_device, buf, ec); })
+                return m_policy.write(m_device, buf, ec);
+            else
+                return jetio::write(m_device, buf, ec);
         }
 
         void sync(error_code_ptr ec = nullptr)
         {
-            if constexpr (requires { m_policy.sync(); })
-            {
-                if (refused_(ec, m_policy.sync()))
-                    return;
-            }
-            jetio::sync(m_device, ec);
+            if constexpr (requires { m_policy.sync(m_device, ec); })
+                m_policy.sync(m_device, ec);
+            else
+                jetio::sync(m_device, ec);
         }
 
         size64_t truncate(size64_t new_size, error_code_ptr ec = nullptr)
         {
-            if constexpr (requires { m_policy.truncate(new_size); })
-            {
-                if (refused_(ec, m_policy.truncate(new_size)))
-                    return m_device.size();
-            }
-            return jetio::truncate(m_device, new_size, ec);
+            if constexpr (requires { m_policy.truncate(m_device, new_size, ec); })
+                return m_policy.truncate(m_device, new_size, ec);
+            else
+                return jetio::truncate(m_device, new_size, ec);
         }
 
         buffer_rd_view view_rd(offset64_range rng, error_code_ptr ec = nullptr)
         {
-            if constexpr (requires { m_policy.view_rd(rng); })
-            {
-                if (refused_(ec, m_policy.view_rd(rng)))
-                    return {};
-            }
-            return jetio::view_rd(m_device, rng, ec);
+            if constexpr (requires { m_policy.view_rd(m_device, rng, ec); })
+                return m_policy.view_rd(m_device, rng, ec);
+            else
+                return jetio::view_rd(m_device, rng, ec);
         }
 
         buffer_wr_view view_wr(offset64_range rng, error_code_ptr ec = nullptr)
         {
-            if constexpr (requires { m_policy.view_wr(rng); })
-            {
-                if (refused_(ec, m_policy.view_wr(rng)))
-                    return {};
-            }
-            return jetio::view_wr(m_device, rng, ec);
+            if constexpr (requires { m_policy.view_wr(m_device, rng, ec); })
+                return m_policy.view_wr(m_device, rng, ec);
+            else
+                return jetio::view_wr(m_device, rng, ec);
         }
 
     private:
-        /// @return true if the policy gave an error, which is reported
-        static bool refused_(error_code_ptr ec, const error_code &e)
-        {
-            if (!e)
-                return false;
-            set_error_or_throw(ec, e);
-            return true;
-        }
-
         Policy m_policy;
         memory_device<> m_device;
     };
@@ -152,7 +146,7 @@ namespace jetio
     namespace bad
     {
         /// The reads and writes together let through `limit` bytes. The call that goes beyond
-        /// transfers the rest, the next ones fail with `ec`; the other operations are not asked.
+        /// transfers the rest, the next ones fail with `ec`; the other operations pass.
         /// The bytes are counted as let through, even if the device then takes less.
         class after_bytes
         {
@@ -163,27 +157,43 @@ namespace jetio
             {
             }
 
-            error_code read(mutable_buffer &buf) { return take_(buf); }
-            error_code write(const_buffer &buf) { return take_(buf); }
+            mutable_buffer read(memory_device<> &device, mutable_buffer buf, error_code_ptr ec)
+            {
+                const std::size_t n = grant_(buf.size(), ec);
+                return n == 0 ? buf.first(0) : jetio::read(device, buf.first(n), ec);
+            }
+
+            const_buffer write(memory_device<> &device, const_buffer buf, error_code_ptr ec)
+            {
+                const std::size_t n = grant_(buf.size(), ec);
+                if (n == 0)
+                    return buf;
+                const const_buffer rest = jetio::write(device, buf.first(n), ec);
+                return buf.last(buf.size() - (n - rest.size()));
+            }
 
         private:
-            template <typename Buffer> error_code take_(Buffer &buf)
+            /// @return how many of `wanted` bytes may go, 0 for none: the error is reported if
+            ///         some were wanted
+            std::size_t grant_(std::size_t wanted, error_code_ptr ec)
             {
-                if (buf.empty())
-                    return {};
-                if (m_left == 0)
-                    return m_ec;
-                buf = buf.first(std::min(buf.size(), m_left));
-                m_left -= buf.size();
-                return {};
+                if (wanted != 0 && m_left == 0)
+                {
+                    set_error_or_throw(ec, m_ec);
+                    return 0;
+                }
+                clear_error(ec);
+                const std::size_t n = std::min(wanted, m_left);
+                m_left -= n;
+                return n;
             }
 
             std::size_t m_left;
             error_code m_ec;
         };
 
-        /// The `call`-th operation, counting from 1 and all the operations that are asked, fails
-        /// with `ec`, once.
+        /// The `call`-th operation, counting from 1 and all the operations of the device except
+        /// the queries, fails with `ec`, once.
         class on_call
         {
         public:
@@ -193,21 +203,53 @@ namespace jetio
             {
             }
 
-            error_code read(mutable_buffer &) { return step_(); }
-            error_code write(const_buffer &) { return step_(); }
-            error_code seek(size64_t &) { return step_(); }
-            error_code truncate(size64_t &) { return step_(); }
-            error_code sync() { return step_(); }
-            error_code view_rd(offset64_range &) { return step_(); }
-            error_code view_wr(offset64_range &) { return step_(); }
+            mutable_buffer read(memory_device<> &device, mutable_buffer buf, error_code_ptr ec)
+            {
+                return failed_(ec) ? buf.first(0) : jetio::read(device, buf, ec);
+            }
+
+            const_buffer write(memory_device<> &device, const_buffer buf, error_code_ptr ec)
+            {
+                return failed_(ec) ? buf : jetio::write(device, buf, ec);
+            }
+
+            size64_t seek(memory_device<> &device, size64_t off, error_code_ptr ec)
+            {
+                return failed_(ec) ? device.offset() : jetio::seek(device, off, ec);
+            }
+
+            size64_t truncate(memory_device<> &device, size64_t new_size, error_code_ptr ec)
+            {
+                return failed_(ec) ? device.size() : jetio::truncate(device, new_size, ec);
+            }
+
+            void sync(memory_device<> &device, error_code_ptr ec)
+            {
+                if (!failed_(ec))
+                    jetio::sync(device, ec);
+            }
+
+            buffer_rd_view view_rd(memory_device<> &device, offset64_range rng, error_code_ptr ec)
+            {
+                return failed_(ec) ? buffer_rd_view{} : jetio::view_rd(device, rng, ec);
+            }
+
+            buffer_wr_view view_wr(memory_device<> &device, offset64_range rng, error_code_ptr ec)
+            {
+                return failed_(ec) ? buffer_wr_view{} : jetio::view_wr(device, rng, ec);
+            }
 
         private:
-            error_code step_()
+            /// @return true if this call is the one that fails: the error is reported
+            bool failed_(error_code_ptr ec)
             {
                 if (m_left == 0)
-                    return {};
+                    return false;
                 --m_left;
-                return m_left == 0 ? m_ec : error_code{};
+                if (m_left != 0)
+                    return false;
+                set_error_or_throw(ec, m_ec);
+                return true;
             }
 
             std::size_t m_left;
@@ -221,16 +263,19 @@ namespace jetio
             /// @pre most > 0
             explicit at_most(std::size_t most) : m_most(most) { JIO_Expects(most > 0); }
 
-            error_code read(mutable_buffer &buf) { return cut_(buf); }
-            error_code write(const_buffer &buf) { return cut_(buf); }
-
-        private:
-            template <typename Buffer> error_code cut_(Buffer &buf) const
+            mutable_buffer read(memory_device<> &device, mutable_buffer buf, error_code_ptr ec)
             {
-                buf = buf.first(std::min(buf.size(), m_most));
-                return {};
+                return jetio::read(device, buf.first(std::min(buf.size(), m_most)), ec);
             }
 
+            const_buffer write(memory_device<> &device, const_buffer buf, error_code_ptr ec)
+            {
+                const std::size_t n = std::min(buf.size(), m_most);
+                const const_buffer rest = jetio::write(device, buf.first(n), ec);
+                return buf.last(buf.size() - (n - rest.size()));
+            }
+
+        private:
             std::size_t m_most;
         };
     } // namespace bad

@@ -1,5 +1,6 @@
 #include <jetio/jetio.hpp>
 
+#include <array>
 #include <cstddef>
 #include <vector>
 
@@ -20,7 +21,10 @@ namespace
     /// A policy that judges one operation only.
     struct no_sync
     {
-        error_code sync() { return std::make_error_code(std::errc::io_error); }
+        void sync(memory_device<> &, error_code_ptr ec)
+        {
+            set_error_or_throw(ec, std::errc::io_error);
+        }
     };
 } // namespace
 
@@ -128,8 +132,16 @@ TEST_CASE("views and truncation can fail too", "[bad_device]")
 {
     struct policy
     {
-        error_code view_rd(offset64_range &) { return std::make_error_code(std::errc::io_error); }
-        error_code truncate(size64_t &) { return std::make_error_code(std::errc::io_error); }
+        buffer_rd_view view_rd(memory_device<> &, offset64_range, error_code_ptr ec)
+        {
+            set_error_or_throw(ec, std::errc::io_error);
+            return {};
+        }
+        size64_t truncate(memory_device<> &device, size64_t, error_code_ptr ec)
+        {
+            set_error_or_throw(ec, std::errc::io_error);
+            return device.size();
+        }
     };
     bad_device device(policy{}, bytes(4));
     error_code ec;
@@ -168,4 +180,39 @@ TEST_CASE("a write view reports the failure of the device", "[bad_device]")
         CHECK(!ec);
     }
     CHECK(ec == std::errc::io_error);
+}
+
+TEST_CASE("a policy decides how the device is used", "[bad_device]")
+{
+    // writes one byte more than it is given, wrongly, and lies about the size
+    struct liar
+    {
+        const_buffer write(memory_device<> &device, const_buffer buf, error_code_ptr ec)
+        {
+            const std::array<std::byte, 1> junk{std::byte{0xee}};
+            jetio::write(device, junk, ec);
+            return jetio::write(device, buf, ec);
+        }
+        size64_t size(const memory_device<> &, error_code_ptr ec) const
+        {
+            clear_error(ec);
+            return 42;
+        }
+    };
+    bad_device device(liar{});
+    const auto data = bytes(2);
+    CHECK(write(device, data).empty());
+    CHECK(device.memory().size() == 3);
+    CHECK(size(device) == 42);
+}
+
+TEST_CASE("seek_forward goes to the seek of the policy", "[bad_device]")
+{
+    bad_device device(bad::on_call(1), bytes(4));
+    error_code ec;
+    seek_forward(device, 2, &ec);
+    CHECK(ec == std::errc::io_error);
+    CHECK(device.offset() == 0);
+    CHECK(seek_forward(device, 2, &ec) == 2);
+    CHECK(!ec);
 }

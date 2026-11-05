@@ -8,6 +8,7 @@ Docs record the current state and the decisions behind it, not how we got there.
   - [Build system](design/build-system.md)
   - [Testing](design/testing.md)
   - [Platform support](design/platform-support.md)
+  - [Build matrix](design/build-matrix.md)
   - [Coding standard](design/coding-standard.md)
   - [Design by contract](design/contracts.md)
   - [IO protocol](design/io-protocol.md)

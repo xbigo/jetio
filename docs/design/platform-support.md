@@ -14,6 +14,8 @@
 
 macOS on x64 is deliberately not supported. 32 bit is planned for Windows, Linux x86 and WebAssembly; the bitness of Linux on Arm and RISC-V beyond arm64 and riscv64 is not decided.
 
+The toolchains, runtimes and measured build and test times are in the [build matrix](build-matrix.md).
+
 ## Decisions
 
 - Presets are named `<os>-<arch>-<compiler>-<config>[-<variant>]`. New platforms add `<os>-<arch>` hidden presets next to `linux-x64`.

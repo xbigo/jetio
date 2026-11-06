@@ -17,6 +17,9 @@ Header: `jetio/std/contract.hpp`: the contract facility is a language extension,
 - A **contract violation** is a programming error that the caller could have avoided by looking at the public interface: an invalid range, a null pattern, calling `seek_forward` backwards.
 - An **error** is a failure the caller cannot check beforehand: IO failure, out of memory, a size that does not fit the platform. Errors are reported through `error_code_ptr` or `io_error`, see [io protocol](io-protocol.md).
 - If the caller can check a condition with the public interface and the device behaves deterministically, it is a precondition. Conditions that depend on state that can change behind the device's back (file size) are errors.
+- Data that the program does not control is never a precondition, however wrong it is: a malformed or malicious file, network input, anything a user can supply or edit. Errors in it are errors, reported as such, whatever it costs the caller to check. (A configuration that users cannot edit is under the control of the program and is not covered.)
+
+Errors are handled by exception safety in general, by `error_code` for the failures of a specific IO operation, and later perhaps by an interface in the style of a monad (a value or an error) on top.
 
 Pointer parameters may always be null, references never are. Only the exceptions to that are documented.
 

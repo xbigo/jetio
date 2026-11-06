@@ -19,7 +19,7 @@ fi
 # and libFuzzer of both clangs.
 packages="
     ca-certificates git python3
-    cmake ninja-build
+    cmake ninja-build ccache
     gcc g++
     clang clang-format clang-tidy libclang-rt-dev
     clang-22 libc++-22-dev libc++abi-22-dev libclang-rt-22-dev

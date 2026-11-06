@@ -23,6 +23,12 @@ DOCKER_BUILD_ENV = "docker/"
 # The default seccomp profile of Docker, plus the personality call that TSan needs (see README.md).
 SECCOMP_PROFILE = ROOT / "tools" / "docker" / "seccomp.json"
 
+# The name of the image without the tag. A name with a registry in it (CI uses ghcr.io/...) is pulled
+# before it is built.
+IMAGE_REPO = os.environ.get("JETIO_IMAGE_REPO", "jetio-dev")
+# The compiler cache of the container lives in the checkout, which the container sees anyway.
+CCACHE_MAXSIZE = "500M"
+
 use_docker = False
 
 
@@ -37,7 +43,7 @@ def image_name() -> str:
     digest = hashlib.sha256()
     for name in IMAGE_FILES:
         digest.update((ROOT / name).read_bytes())
-    return f"jetio-dev:{digest.hexdigest()[:12]}"
+    return f"{IMAGE_REPO}:{digest.hexdigest()[:12]}"
 
 
 def ensure_image() -> str:
@@ -46,6 +52,10 @@ def ensure_image() -> str:
     exists = subprocess.run(
         ("docker", "image", "inspect", image), capture_output=True, check=False
     ).returncode == 0
+    if not exists and "/" in image:
+        pull = ("docker", "pull", "--quiet", image)
+        print("+", " ".join(pull), flush=True)
+        exists = subprocess.run(pull, capture_output=True, check=False).returncode == 0
     if not exists:
         build = ("docker", "build", "-t", image, "-f", "tools/docker/Dockerfile", "tools")
         print("+", " ".join(build), flush=True)
@@ -65,6 +75,10 @@ def in_docker(cmd: tuple[str | Path, ...]) -> tuple[str | Path, ...]:
         "--security-opt", f"seccomp={SECCOMP_PROFILE}",
         "-e", "HOME=/tmp",
         "-e", f"JETIO_BUILD_ENV={DOCKER_BUILD_ENV}",
+        "-e", "CMAKE_CXX_COMPILER_LAUNCHER=ccache",
+        "-e", f"CCACHE_DIR={ROOT / 'build' / 'ccache'}",
+        "-e", f"CCACHE_BASEDIR={ROOT}",
+        "-e", f"CCACHE_MAXSIZE={CCACHE_MAXSIZE}",
         "-v", f"{ROOT}:{ROOT}",
         "-w", str(ROOT),
         ensure_image(),
@@ -125,6 +139,15 @@ def cmd_format(args: argparse.Namespace) -> int:
     return run(clang_format, *mode, *files) if files else 0
 
 
+def cmd_image(args: argparse.Namespace) -> int:
+    print(image_name() if args.name else ensure_image())
+    return 0
+
+
+def cmd_ccache(_: argparse.Namespace) -> int:
+    return run("ccache", "--show-stats")
+
+
 def cmd_clean(args: argparse.Namespace) -> int:
     path = build_dir(args.preset)
     if path.exists():
@@ -158,6 +181,9 @@ def build_parser() -> argparse.ArgumentParser:
     add("check", cmd_check, "configure + build + unit tests with the time limit")
     add("bench", cmd_bench, "run the micro-benchmarks (release presets)")
     add("clean", cmd_clean, "remove the build directory of a preset")
+    image = add("image", cmd_image, "make the Docker image if needed and print its name", preset=False)
+    image.add_argument("--name", action="store_true", help="only print the name")
+    add("ccache", cmd_ccache, "statistics of the compiler cache", preset=False)
     fmt = add("format", cmd_format, "run clang-format", preset=False)
     fmt.add_argument("--check", action="store_true", help="only report differences")
     return parser

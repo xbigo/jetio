@@ -53,3 +53,7 @@ VS Code with CMake Tools and clangd (see `.vscode/extensions.json`). CMake Tools
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on pushes to `main`, on pull requests and on demand. One job per preset on `ubuntu-24.04`, which only provides Docker: each job runs `tools/jetio-dev` (configure, build, test) in the container image, so the toolchain is the one of the image and not the one of the runner. Presets: `gcc-debug`, `clang-debug`, `clang-libcxx-debug`, `gcc-release-audit` (plus the benchmark smoke run), `clang-asan`, `clang-tsan`, `clang-fuzz`.
+
+The image is made by CI: the job `image` pushes `ghcr.io/<owner>/jetio-dev:<hash>` when that hash, which is the one of `tools/docker/Dockerfile` and `tools/setup/linux-apt.sh`, is not in GHCR yet, and the preset jobs pull it (`JETIO_IMAGE_REPO` names the repository; `jetio-dev` pulls a name with a registry before it builds). A change of either file makes the next run build the image once. A pull request from a fork cannot push it.
+
+The container compiles through ccache, in every use of the container, not only in CI. The cache is `build/ccache` of the checkout (limit 500 MB), and CI keeps it per preset with `actions/cache`. A rebuild of a clean tree of `linux-x64-gcc-debug` took 12.5 s without hits and 3.5 s with them (Catch2 is most of the 12.5 s); `tools/jetio-dev ccache` shows the statistics.

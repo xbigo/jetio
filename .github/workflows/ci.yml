@@ -32,7 +32,7 @@ jobs:
           - preset: linux-x64-clang-tsan
           - preset: linux-x64-clang-fuzz
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Configure
         run: tools/jetio-dev configure -p ${{ matrix.preset }}
       - name: Build

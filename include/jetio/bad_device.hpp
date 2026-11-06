@@ -24,8 +24,8 @@ namespace jetio
     ///
     ///   mutable_buffer read(memory_device<> &, mutable_buffer buf, error_code_ptr ec)
     ///   const_buffer write(memory_device<> &, const_buffer buf, error_code_ptr ec)
-    ///   size64_t seek(memory_device<> &, size64_t off, error_code_ptr ec)
-    ///   size64_t seek_forward(memory_device<> &, size64_t off, error_code_ptr ec)
+    ///   offset64_t seek(memory_device<> &, offset64_t off, error_code_ptr ec)
+    ///   offset64_t seek_forward(memory_device<> &, offset64_t off, error_code_ptr ec)
     ///   void sync(memory_device<> &, error_code_ptr ec)
     ///   size64_t truncate(memory_device<> &, size64_t new_size, error_code_ptr ec)
     ///   buffer_rd_view view_rd(memory_device<> &, offset64_range rng, error_code_ptr ec)
@@ -49,7 +49,7 @@ namespace jetio
         Policy &policy() noexcept { return m_policy; }
         const Policy &policy() const noexcept { return m_policy; }
 
-        size64_t offset(error_code_ptr ec = nullptr) const
+        offset64_t offset(error_code_ptr ec = nullptr) const
         {
             if constexpr (requires { m_policy.offset(m_device, ec); })
                 return m_policy.offset(m_device, ec);
@@ -73,7 +73,7 @@ namespace jetio
                 return jetio::size(m_device, ec);
         }
 
-        size64_t seek(size64_t off, error_code_ptr ec = nullptr)
+        offset64_t seek(offset64_t off, error_code_ptr ec = nullptr)
         {
             if constexpr (requires { m_policy.seek(m_device, off, ec); })
                 return m_policy.seek(m_device, off, ec);
@@ -81,7 +81,7 @@ namespace jetio
                 return jetio::seek(m_device, off, ec);
         }
 
-        size64_t seek_forward(size64_t off, error_code_ptr ec = nullptr)
+        offset64_t seek_forward(offset64_t off, error_code_ptr ec = nullptr)
         {
             if constexpr (requires { m_policy.seek_forward(m_device, off, ec); })
                 return m_policy.seek_forward(m_device, off, ec);
@@ -213,7 +213,7 @@ namespace jetio
                 return failed_(ec) ? buf : jetio::write(device, buf, ec);
             }
 
-            size64_t seek(memory_device<> &device, size64_t off, error_code_ptr ec)
+            offset64_t seek(memory_device<> &device, offset64_t off, error_code_ptr ec)
             {
                 return failed_(ec) ? device.offset() : jetio::seek(device, off, ec);
             }

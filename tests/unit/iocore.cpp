@@ -12,9 +12,9 @@ namespace
     // Only the operations of a plain stream.
     struct stream_device
     {
-        size64_t position = 0;
-        size64_t offset(error_code_ptr) const { return position; }
-        size64_t seek_forward(size64_t off, error_code_ptr)
+        offset64_t position = 0;
+        offset64_t offset(error_code_ptr) const { return position; }
+        offset64_t seek_forward(offset64_t off, error_code_ptr)
         {
             position = off;
             return position;
@@ -74,27 +74,28 @@ namespace custom
     struct free_device
     {
         std::vector<std::byte> data = std::vector<std::byte>(4, std::byte{7});
-        size64_t pos = 0;
+        jetio::offset64_t pos = 0;
     };
 
     jetio::mutable_buffer read(free_device &device, jetio::mutable_buffer buf,
                                jetio::error_code_ptr ec)
     {
         jetio::clear_error(ec);
-        const auto count = std::min(buf.size(), device.data.size() - device.pos);
+        const auto count =
+            std::min(buf.size(), device.data.size() - static_cast<std::size_t>(device.pos));
         std::copy_n(device.data.begin() + static_cast<std::ptrdiff_t>(device.pos), count,
                     buf.begin());
-        device.pos += count;
+        device.pos += static_cast<jetio::offset64_t>(count);
         return buf.first(count);
     }
 
-    jetio::size64_t offset(const free_device &device, jetio::error_code_ptr ec)
+    jetio::offset64_t offset(const free_device &device, jetio::error_code_ptr ec)
     {
         jetio::clear_error(ec);
         return device.pos;
     }
 
-    jetio::size64_t seek(free_device &device, jetio::size64_t off, jetio::error_code_ptr ec)
+    jetio::offset64_t seek(free_device &device, jetio::offset64_t off, jetio::error_code_ptr ec)
     {
         jetio::clear_error(ec);
         return device.pos = off;

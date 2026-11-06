@@ -160,10 +160,10 @@ namespace jetio
         }
 
         /// @return the current offset
-        size64_t offset(error_code_ptr ec = nullptr) const noexcept
+        offset64_t offset(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
-            return pos_();
+            return static_cast<offset64_t>(pos_());
         }
 
         /// @return true if the offset is at or beyond the end of the data
@@ -184,24 +184,24 @@ namespace jetio
         /// @return `off`. Reports errc::value_too_large, and returns the unchanged offset, if
         ///         `off` does not fit in std::size_t.
         /// @post on success offset() == off
-        size64_t seek(size64_t off, error_code_ptr ec = nullptr)
+        offset64_t seek(offset64_t off, error_code_ptr ec = nullptr)
         {
             if (!in_size_t_range(off))
             {
                 set_error_or_throw(ec, std::errc::value_too_large);
-                return pos_();
+                return static_cast<offset64_t>(pos_());
             }
             clear_error(ec);
-            detail::set_represent_pos(m_rep, to_size_t(off));
-            JIO_Ensures(pos_() == off);
+            detail::set_represent_pos(m_rep, offset_to_size_t(off));
+            JIO_Ensures(std::cmp_equal(pos_(), off));
             return off;
         }
 
         /// Moves the offset forward, see seek.
         /// @pre off >= offset()
-        size64_t seek_forward(size64_t off, error_code_ptr ec = nullptr)
+        offset64_t seek_forward(offset64_t off, error_code_ptr ec = nullptr)
         {
-            JIO_Expects(off >= pos_());
+            JIO_Expects(std::cmp_greater_equal(off, pos_()));
             return seek(off, ec);
         }
 

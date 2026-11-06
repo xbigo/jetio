@@ -128,9 +128,9 @@ namespace jetio
                 return {};
 
             if constexpr (random_access<Device &>)
-                jetio::seek(m_device, static_cast<size64_t>(rng.begin), ec);
+                jetio::seek(m_device, rng.begin, ec);
             else
-                jetio::seek_forward(m_device, static_cast<size64_t>(rng.begin), ec);
+                jetio::seek_forward(m_device, rng.begin, ec);
             if (has_error(ec))
                 return {};
 
@@ -200,7 +200,7 @@ namespace jetio
     private:
         void write_back_(error_code_ptr ec)
         {
-            jetio::seek(*m_device, static_cast<size64_t>(m_pos), ec);
+            jetio::seek(*m_device, m_pos, ec);
             if (has_error(ec))
                 return;
             // write may take less than it is given: write the rest, stop at the first error

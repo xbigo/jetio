@@ -28,8 +28,8 @@ namespace
     {
     public:
         explicit forward_only(std::size_t n) : m_device(device_of(n)) {}
-        size64_t offset(error_code_ptr ec = nullptr) const { return m_device.offset(ec); }
-        size64_t seek_forward(size64_t off, error_code_ptr ec = nullptr)
+        offset64_t offset(error_code_ptr ec = nullptr) const { return m_device.offset(ec); }
+        offset64_t seek_forward(offset64_t off, error_code_ptr ec = nullptr)
         {
             return m_device.seek_forward(off, ec);
         }
@@ -190,16 +190,16 @@ TEST_CASE("shift_device reports what does not fit", "[adaptor][shift]")
 {
     auto device = device_of(10);
     shift_device shifted(device, 4);
+    const offset64_t far = unknown_offset - 2;
     const size64_t huge = std::numeric_limits<size64_t>::max() - 2;
 
     error_code ec;
-    CHECK(seek(shifted, huge, &ec) == 0);
+    CHECK(seek(shifted, far, &ec) == 0);
     CHECK(ec == std::errc::value_too_large);
-    CHECK_THROWS_AS(seek(shifted, huge), io_error);
-    CHECK(jetio::truncate(shifted, huge, &ec) == 0);
+    CHECK_THROWS_AS(seek(shifted, far), io_error);
+    CHECK(jetio::truncate(shifted, huge, &ec) == 6); // the unchanged size, 10 less the shift
     CHECK(ec == std::errc::value_too_large);
 
-    const offset64_t far = unknown_offset - 2;
     CHECK(address(view_rd(shifted, {far, unknown_offset}, &ec)).empty());
     CHECK(ec == std::errc::value_too_large);
     CHECK(address(view_wr(shifted, {0, far}, &ec)).empty());

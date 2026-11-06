@@ -23,7 +23,7 @@ The operations are objects, so they are not overloaded with functions of the sam
 
 ## Conventions
 
-- Sizes and offsets are bytes, 64 bit (`size64_t`, `offset64_t`) on every platform. `offset64_range` is half open; its end may be `unknown_offset`, meaning up to the end.
+- Sizes and offsets are bytes, 64 bit on every platform: sizes are `size64_t`, offsets (`offset`, the argument and the result of `seek` and `seek_forward`, the generator of `generator_device`) are `offset64_t`, never negative. `offset64_range` is half open; its end may be `unknown_offset`, meaning up to the end.
 - `error_code_ptr ec`: null means failures are thrown as `io_error`; non-null means they are stored there, and it is cleared on success.
 - Seeking beyond the end is allowed. Reading there returns nothing; writing there extends the device if it can grow, and the gap reads as zero.
 - A device is always left valid and usable after an error. An operation has made progress after an error only where it says so.
@@ -42,6 +42,7 @@ Checked by the operations of namespace `jetio`, for every device, whether it pro
 | `read` | Result is a prefix of the buffer. It may be shorter than the buffer, but it is empty only for an empty buffer, at the end of data or after an error (only the prefix is checked) |
 | `write` | Result is the unwritten suffix of the buffer. It may be non empty without an error, but it is the whole buffer only for an empty buffer or after an error (only the suffix is checked) |
 | `view_rd`, `view_wr` | Precondition `is_valid_range(rng)`; unless an error occurred, the view has `range_size(rng)` bytes when the end is known |
+| `seek`, `seek_forward` | Precondition `off >= 0` |
 | `seek_forward` | Precondition (audit): target is not before the current offset |
 
 ## Devices

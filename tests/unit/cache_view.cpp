@@ -32,8 +32,8 @@ namespace
         {
             return jetio::read(m_device, buf.first(std::min<std::size_t>(buf.size(), 2)), ec);
         }
-        size64_t offset(error_code_ptr ec = nullptr) const { return m_device.offset(ec); }
-        size64_t seek_forward(size64_t off, error_code_ptr ec = nullptr)
+        offset64_t offset(error_code_ptr ec = nullptr) const { return m_device.offset(ec); }
+        offset64_t seek_forward(offset64_t off, error_code_ptr ec = nullptr)
         {
             return m_device.seek_forward(off, ec);
         }
@@ -218,8 +218,11 @@ namespace
         {
             return jetio::write(m_device, buf, ec);
         }
-        size64_t offset(error_code_ptr ec = nullptr) const { return m_device.offset(ec); }
-        size64_t seek(size64_t off, error_code_ptr ec = nullptr) { return m_device.seek(off, ec); }
+        offset64_t offset(error_code_ptr ec = nullptr) const { return m_device.offset(ec); }
+        offset64_t seek(offset64_t off, error_code_ptr ec = nullptr)
+        {
+            return m_device.seek(off, ec);
+        }
 
     private:
         memory_device<> m_device = device_of(8);
@@ -238,8 +241,11 @@ namespace
             const const_buffer rest = jetio::write(m_device, buf.first(n), ec);
             return buf.last(buf.size() - n + rest.size());
         }
-        size64_t offset(error_code_ptr ec = nullptr) const { return m_device.offset(ec); }
-        size64_t seek(size64_t off, error_code_ptr ec = nullptr) { return m_device.seek(off, ec); }
+        offset64_t offset(error_code_ptr ec = nullptr) const { return m_device.offset(ec); }
+        offset64_t seek(offset64_t off, error_code_ptr ec = nullptr)
+        {
+            return m_device.seek(off, ec);
+        }
         memory_device<> &memory() { return m_device; }
 
     private:

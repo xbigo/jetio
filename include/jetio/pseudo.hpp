@@ -22,7 +22,7 @@ namespace jetio
         class pseudo_common
         {
         public:
-            size64_t offset(error_code_ptr ec = nullptr) const noexcept
+            offset64_t offset(error_code_ptr ec = nullptr) const noexcept
             {
                 clear_error(ec);
                 return m_pos;
@@ -34,7 +34,7 @@ namespace jetio
                 return false;
             }
 
-            size64_t seek(size64_t off, error_code_ptr ec = nullptr) noexcept
+            offset64_t seek(offset64_t off, error_code_ptr ec = nullptr) noexcept
             {
                 clear_error(ec);
                 return m_pos = off;
@@ -47,7 +47,7 @@ namespace jetio
             }
 
         protected:
-            size64_t m_pos = 0;
+            offset64_t m_pos = 0;
         };
     } // namespace detail
 
@@ -60,7 +60,7 @@ namespace jetio
         {
             clear_error(ec);
             std::ranges::fill(buf, std::byte{});
-            m_pos += buf.size();
+            m_pos += static_cast<offset64_t>(buf.size());
             return buf;
         }
     };
@@ -83,7 +83,7 @@ namespace jetio
             clear_error(ec);
             auto out = buf.begin();
             std::size_t left = buf.size();
-            auto index = static_cast<std::size_t>(m_pos % m_pattern.size());
+            auto index = static_cast<std::size_t>(m_pos) % m_pattern.size();
             while (left != 0)
             {
                 const std::size_t count = std::min(left, m_pattern.size() - index);
@@ -92,7 +92,7 @@ namespace jetio
                 left -= count;
                 index = 0;
             }
-            m_pos += buf.size();
+            m_pos += static_cast<offset64_t>(buf.size());
             return buf;
         }
 
@@ -104,8 +104,9 @@ namespace jetio
     {
         /// g(offset) gives the byte at that offset, whatever was asked before.
         template <typename G>
-        concept positional_generator = std::invocable<G &, size64_t> &&
-                                       std::same_as<std::invoke_result_t<G &, size64_t>, std::byte>;
+        concept positional_generator =
+            std::invocable<G &, offset64_t> &&
+            std::same_as<std::invoke_result_t<G &, offset64_t>, std::byte>;
 
         /// g() gives the next byte.
         template <typename G>
@@ -134,7 +135,7 @@ namespace jetio
         {
         }
 
-        size64_t offset(error_code_ptr ec = nullptr) const noexcept
+        offset64_t offset(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
             return m_pos;
@@ -153,7 +154,7 @@ namespace jetio
         }
 
         /// Positional generator only.
-        size64_t seek(size64_t off, error_code_ptr ec = nullptr) noexcept
+        offset64_t seek(offset64_t off, error_code_ptr ec = nullptr) noexcept
             requires positional
         {
             clear_error(ec);
@@ -162,7 +163,7 @@ namespace jetio
 
         /// Moves the offset forward; a sequential generator makes and drops the bytes in between.
         /// @pre off >= offset()
-        size64_t seek_forward(size64_t off, error_code_ptr ec = nullptr)
+        offset64_t seek_forward(offset64_t off, error_code_ptr ec = nullptr)
         {
             JIO_Expects(off >= m_pos);
             clear_error(ec);
@@ -182,7 +183,7 @@ namespace jetio
             clear_error(ec);
             if constexpr (positional)
             {
-                size64_t at = m_pos;
+                offset64_t at = m_pos;
                 for (std::byte &b : buf)
                     b = m_generator(at++);
             }
@@ -191,13 +192,13 @@ namespace jetio
                 for (std::byte &b : buf)
                     b = m_generator();
             }
-            m_pos += buf.size();
+            m_pos += static_cast<offset64_t>(buf.size());
             return buf;
         }
 
     private:
         Generator m_generator;
-        size64_t m_pos = 0;
+        offset64_t m_pos = 0;
     };
 
     /// Discards everything written, like /dev/null. The size is always 0, whatever the
@@ -209,7 +210,7 @@ namespace jetio
         const_buffer write(const_buffer buf, error_code_ptr ec = nullptr) noexcept
         {
             clear_error(ec);
-            m_pos += buf.size();
+            m_pos += static_cast<offset64_t>(buf.size());
             return buf.last(0);
         }
 
@@ -226,13 +227,13 @@ namespace jetio
             return 0;
         }
 
-        size64_t offset(error_code_ptr ec = nullptr) const noexcept
+        offset64_t offset(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
             return m_pos;
         }
 
-        size64_t seek(size64_t off, error_code_ptr ec = nullptr) noexcept
+        offset64_t seek(offset64_t off, error_code_ptr ec = nullptr) noexcept
         {
             clear_error(ec);
             return m_pos = off;
@@ -251,7 +252,7 @@ namespace jetio
         }
 
     private:
-        size64_t m_pos = 0;
+        offset64_t m_pos = 0;
     };
 
     /// Has no data: reads nothing, the offset is always 0. [ reader, is_eofer, sizer ]
@@ -265,14 +266,14 @@ namespace jetio
             return buf.first(0);
         }
 
-        size64_t offset(error_code_ptr ec = nullptr) const noexcept
+        offset64_t offset(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
             return 0;
         }
 
         /// @return 0, whatever `off` is
-        size64_t seek(size64_t /*off*/, error_code_ptr ec = nullptr) noexcept
+        offset64_t seek(offset64_t /*off*/, error_code_ptr ec = nullptr) noexcept
         {
             clear_error(ec);
             return 0;

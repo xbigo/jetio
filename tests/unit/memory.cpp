@@ -1,7 +1,9 @@
 #include <jetio/jetio.hpp>
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <new>
 #include <numeric>
@@ -330,16 +332,19 @@ namespace
     };
 } // namespace
 
-TEST_CASE("an end that does not fit in size_t is an error", "[memory]")
+// size_t on 32 bit systems, the largest offset on 64 bit ones
+TEST_CASE("an end that does not fit in the container is an error", "[memory]")
 {
     memory_device<> device;
     error_code ec;
+    const auto near_end = static_cast<offset64_t>(
+        std::min<std::uint64_t>(std::numeric_limits<std::size_t>::max(), unknown_offset) - 1);
 
-    seek(device, std::numeric_limits<std::size_t>::max() - 1);
+    seek(device, near_end);
     CHECK(jetio::write(device, bytes(4), &ec).size() == 4);
     CHECK(ec == std::errc::value_too_large);
     CHECK(device.size() == 0);
-    CHECK(device.offset() == std::numeric_limits<std::size_t>::max() - 1);
+    CHECK(device.offset() == near_end);
     CHECK_THROWS_AS(jetio::write(device, bytes(4)), io_error);
 }
 

@@ -48,7 +48,7 @@ TEST_CASE("fill_device repeats its pattern", "[pseudo]")
     CHECK(out == std::vector<std::byte>{std::byte{3}, std::byte{1}});
 
     // any offset, any buffer size
-    for (size64_t start = 0; start < 7; ++start)
+    for (offset64_t start = 0; start < 7; ++start)
     {
         for (std::size_t n = 0; n < 10; ++n)
         {
@@ -56,7 +56,7 @@ TEST_CASE("fill_device repeats its pattern", "[pseudo]")
             out.assign(n, std::byte{0xff});
             jetio::read(device, out);
             for (std::size_t i = 0; i < n; ++i)
-                CHECK(out[i] == pattern[(start + i) % 3]);
+                CHECK(out[i] == pattern[(static_cast<std::size_t>(start) + i) % 3]);
         }
     }
 }
@@ -91,7 +91,7 @@ TEST_CASE("empty_device has no data", "[pseudo]")
 
 TEST_CASE("generator_device with a positional generator is random access", "[pseudo]")
 {
-    auto generator = [](size64_t off) { return static_cast<std::byte>(off * 7); };
+    auto generator = [](offset64_t off) { return static_cast<std::byte>(off * 7); };
     generator_device device(generator);
     static_assert(reader<decltype(device)> && random_access<decltype(device)> &&
                   sizer<decltype(device)> && is_eofer<decltype(device)> &&

@@ -326,18 +326,18 @@ namespace jetio
         void offset() = delete;
         template <typename D>
         concept by_member = requires(D &device, error_code_ptr ec) {
-            { device.offset(ec) } -> std::convertible_to<size64_t>;
+            { device.offset(ec) } -> std::convertible_to<offset64_t>;
         };
         template <typename D>
         concept by_adl = requires(D &device, error_code_ptr ec) {
-            { offset(device, ec) } -> std::convertible_to<size64_t>;
+            { offset(device, ec) } -> std::convertible_to<offset64_t>;
         };
         struct fn
         {
             template <typename Device>
                 requires by_member<std::remove_reference_t<Device>> ||
                          by_adl<std::remove_reference_t<Device>>
-            size64_t operator()(Device &&device, error_code_ptr ec = nullptr) const
+            offset64_t operator()(Device &&device, error_code_ptr ec = nullptr) const
             {
                 if constexpr (by_adl<std::remove_reference_t<Device>>)
                     return offset(device, ec);
@@ -352,7 +352,7 @@ namespace jetio
 
     template <typename Device>
     concept sequence = requires(Device &&device, error_code_ptr ec) {
-        { jetio::offset(device, ec) } -> std::convertible_to<size64_t>;
+        { jetio::offset(device, ec) } -> std::convertible_to<offset64_t>;
     };
 
     // ---------------------------------------------------------------------------------------
@@ -363,20 +363,22 @@ namespace jetio
     {
         void seek() = delete;
         template <typename D>
-        concept by_member = requires(D &device, size64_t off, error_code_ptr ec) {
-            { device.seek(off, ec) } -> std::convertible_to<size64_t>;
+        concept by_member = requires(D &device, offset64_t off, error_code_ptr ec) {
+            { device.seek(off, ec) } -> std::convertible_to<offset64_t>;
         };
         template <typename D>
-        concept by_adl = requires(D &device, size64_t off, error_code_ptr ec) {
-            { seek(device, off, ec) } -> std::convertible_to<size64_t>;
+        concept by_adl = requires(D &device, offset64_t off, error_code_ptr ec) {
+            { seek(device, off, ec) } -> std::convertible_to<offset64_t>;
         };
         struct fn
         {
             template <typename Device>
                 requires by_member<std::remove_reference_t<Device>> ||
                          by_adl<std::remove_reference_t<Device>>
-            size64_t operator()(Device &&device, size64_t off, error_code_ptr ec = nullptr) const
+            offset64_t operator()(Device &&device, offset64_t off,
+                                  error_code_ptr ec = nullptr) const
             {
+                JIO_Expects(off >= 0);
                 if constexpr (by_adl<std::remove_reference_t<Device>>)
                     return seek(device, off, ec);
                 else
@@ -386,14 +388,15 @@ namespace jetio
     } // namespace detail::seek_op
 
     /// Moves the current offset to `off`.
+    /// @pre off >= 0
     /// @return the offset afterwards: `off`, unless the device documents otherwise (for
     ///         example empty_device, which has no offset but 0). On an error it is the unchanged
     ///         offset.
     inline constexpr detail::seek_op::fn seek{};
 
     template <typename Device>
-    concept random_access = requires(Device &&device, size64_t off, error_code_ptr ec) {
-        { jetio::seek(device, off, ec) } -> std::convertible_to<size64_t>;
+    concept random_access = requires(Device &&device, offset64_t off, error_code_ptr ec) {
+        { jetio::seek(device, off, ec) } -> std::convertible_to<offset64_t>;
     } && sequence<Device>;
 
     // ---------------------------------------------------------------------------------------
@@ -404,12 +407,12 @@ namespace jetio
     {
         /// Used in contracts only: true if `off` is not before the current offset (or the
         /// current offset cannot be obtained).
-        template <typename Device> bool is_not_before_offset(Device &device, size64_t off)
+        template <typename Device> bool is_not_before_offset(Device &device, offset64_t off)
         {
             if constexpr (requires(Device &d, error_code_ptr ec) { jetio::offset(d, ec); })
             {
                 error_code ec;
-                const size64_t current = jetio::offset(device, &ec);
+                const offset64_t current = jetio::offset(device, &ec);
                 return ec || off >= current;
             }
             else
@@ -423,16 +426,16 @@ namespace jetio
     {
         void seek_forward() = delete;
         template <typename D>
-        concept by_member = requires(D &device, size64_t off, error_code_ptr ec) {
-            { device.seek_forward(off, ec) } -> std::convertible_to<size64_t>;
+        concept by_member = requires(D &device, offset64_t off, error_code_ptr ec) {
+            { device.seek_forward(off, ec) } -> std::convertible_to<offset64_t>;
         };
         template <typename D>
-        concept by_adl = requires(D &device, size64_t off, error_code_ptr ec) {
-            { seek_forward(device, off, ec) } -> std::convertible_to<size64_t>;
+        concept by_adl = requires(D &device, offset64_t off, error_code_ptr ec) {
+            { seek_forward(device, off, ec) } -> std::convertible_to<offset64_t>;
         };
         template <typename D>
-        concept by_seek = requires(D &device, size64_t off, error_code_ptr ec) {
-            { jetio::seek(device, off, ec) } -> std::convertible_to<size64_t>;
+        concept by_seek = requires(D &device, offset64_t off, error_code_ptr ec) {
+            { jetio::seek(device, off, ec) } -> std::convertible_to<offset64_t>;
         };
         struct fn
         {
@@ -440,8 +443,10 @@ namespace jetio
                 requires by_member<std::remove_reference_t<Device>> ||
                          by_adl<std::remove_reference_t<Device>> ||
                          by_seek<std::remove_reference_t<Device>>
-            size64_t operator()(Device &&device, size64_t off, error_code_ptr ec = nullptr) const
+            offset64_t operator()(Device &&device, offset64_t off,
+                                  error_code_ptr ec = nullptr) const
             {
+                JIO_Expects(off >= 0);
                 JIO_Expects_audit(detail::is_not_before_offset(device, off));
                 if constexpr (by_adl<std::remove_reference_t<Device>>)
                     return seek_forward(device, off, ec);
@@ -455,13 +460,14 @@ namespace jetio
 
     /// Moves the current offset forward to `off`. Devices that cannot go back (streams) provide
     /// only this; every random access device gets it through seek.
+    /// @pre off >= 0
     /// @pre off >= offset(device) (audit)
     /// @return the offset afterwards, see seek
     inline constexpr detail::seek_forward_op::fn seek_forward{};
 
     template <typename Device>
-    concept forward_access = requires(Device &&device, size64_t off, error_code_ptr ec) {
-        { jetio::seek_forward(device, off, ec) } -> std::convertible_to<size64_t>;
+    concept forward_access = requires(Device &&device, offset64_t off, error_code_ptr ec) {
+        { jetio::seek_forward(device, off, ec) } -> std::convertible_to<offset64_t>;
     } && sequence<Device>;
 
     // ---------------------------------------------------------------------------------------

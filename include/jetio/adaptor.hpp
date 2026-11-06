@@ -47,14 +47,14 @@ namespace jetio
             return true;
         }
 
-        /// @pre a >= 0
+        /// @pre a >= 0 && b >= 0
         /// @return false if a + b is not an offset below unknown_offset
-        constexpr bool add_offset(offset64_t a, size64_t b, offset64_t &sum) noexcept
+        constexpr bool add_offset(offset64_t a, offset64_t b, offset64_t &sum) noexcept
         {
-            JIO_Expects(a >= 0);
-            if (std::cmp_greater_equal(b, unknown_offset - a))
+            JIO_Expects(a >= 0 && b >= 0);
+            if (b >= unknown_offset - a)
                 return false;
-            sum = a + static_cast<offset64_t>(b);
+            sum = a + b;
             return true;
         }
     } // namespace detail
@@ -69,15 +69,17 @@ namespace jetio
     class multiplex_device
     {
     public:
-        explicit multiplex_device(Device &device, size64_t pos = 0) noexcept
+        /// @pre pos >= 0
+        explicit multiplex_device(Device &device, offset64_t pos = 0) noexcept
             : m_device(device), m_pos(pos)
         {
+            JIO_Expects(pos >= 0);
         }
 
         Device &underlying() noexcept { return m_device; }
         const Device &underlying() const noexcept { return m_device; }
 
-        size64_t offset(error_code_ptr ec = nullptr) const noexcept
+        offset64_t offset(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
             return m_pos;
@@ -85,9 +87,9 @@ namespace jetio
 
         /// @return the offset afterwards, as the wrapped device reports it; the unchanged
         ///         offset on an error
-        size64_t seek(size64_t off, error_code_ptr ec = nullptr)
+        offset64_t seek(offset64_t off, error_code_ptr ec = nullptr)
         {
-            const size64_t result = jetio::seek(m_device, off, ec);
+            const offset64_t result = jetio::seek(m_device, off, ec);
             if (has_error(ec))
                 return m_pos;
             return m_pos = result;
@@ -99,7 +101,7 @@ namespace jetio
             if (!enter_(ec))
                 return buf.first(0);
             const mutable_buffer result = jetio::read(m_device, buf, ec);
-            m_pos += result.size();
+            m_pos += static_cast<offset64_t>(result.size());
             return result;
         }
 
@@ -109,7 +111,7 @@ namespace jetio
             if (!enter_(ec))
                 return buf;
             const const_buffer rest = jetio::write(m_device, buf, ec);
-            m_pos += buf.size() - rest.size();
+            m_pos += static_cast<offset64_t>(buf.size() - rest.size());
             return rest;
         }
 
@@ -160,7 +162,7 @@ namespace jetio
         }
 
         Device &m_device;
-        size64_t m_pos = 0;
+        offset64_t m_pos = 0;
     };
 
     /// Hides the first `shift` bytes of a device, such as a header that something else has
@@ -177,35 +179,37 @@ namespace jetio
     class shift_device
     {
     public:
-        explicit shift_device(Device &device, size64_t shift) noexcept
+        /// @pre shift >= 0
+        explicit shift_device(Device &device, offset64_t shift) noexcept
             : m_device(device), m_shift(shift)
         {
+            JIO_Expects(shift >= 0);
         }
 
         Device &underlying() noexcept { return m_device; }
         const Device &underlying() const noexcept { return m_device; }
-        size64_t shift() const noexcept { return m_shift; }
+        offset64_t shift() const noexcept { return m_shift; }
 
-        size64_t offset(error_code_ptr ec = nullptr) const
+        offset64_t offset(error_code_ptr ec = nullptr) const
         {
             return to_logical_(jetio::offset(m_device, ec));
         }
 
         /// @return the offset afterwards, see seek
-        size64_t seek_forward(size64_t off, error_code_ptr ec = nullptr)
+        offset64_t seek_forward(offset64_t off, error_code_ptr ec = nullptr)
         {
-            size64_t target = 0;
-            if (!detail::add_size(off, m_shift, target))
+            offset64_t target = 0;
+            if (!detail::add_offset(off, m_shift, target))
                 return too_large_(ec);
             return to_logical_(jetio::seek_forward(m_device, target, ec));
         }
 
         /// @return the offset afterwards: `off`, or the unchanged offset on an error
-        size64_t seek(size64_t off, error_code_ptr ec = nullptr)
+        offset64_t seek(offset64_t off, error_code_ptr ec = nullptr)
             requires random_access<Device &>
         {
-            size64_t target = 0;
-            if (!detail::add_size(off, m_shift, target))
+            offset64_t target = 0;
+            if (!detail::add_offset(off, m_shift, target))
                 return too_large_(ec);
             return to_logical_(jetio::seek(m_device, target, ec));
         }
@@ -239,7 +243,7 @@ namespace jetio
             requires sizer<Device &>
         {
             const size64_t device_size = jetio::size(m_device, ec);
-            return device_size == unknown_size ? device_size : to_logical_(device_size);
+            return device_size == unknown_size ? device_size : logical_size_(device_size);
         }
 
         /// @return the size afterwards, `new_size` unless the device reports otherwise
@@ -247,9 +251,13 @@ namespace jetio
             requires truncater<Device &>
         {
             size64_t target = 0;
-            if (!detail::add_size(new_size, m_shift, target))
-                return too_large_(ec);
-            return to_logical_(jetio::truncate(m_device, target, ec));
+            if (!detail::add_size(new_size, static_cast<size64_t>(m_shift), target))
+            {
+                set_error_or_throw(ec, std::errc::value_too_large);
+                error_code ignored;
+                return logical_size_(jetio::size(m_device, &ignored));
+            }
+            return logical_size_(jetio::truncate(m_device, target, ec));
         }
 
         void sync(error_code_ptr ec = nullptr)
@@ -288,14 +296,20 @@ namespace jetio
         }
 
     private:
-        size64_t to_logical_(size64_t device_offset) const noexcept
+        offset64_t to_logical_(offset64_t device_offset) const noexcept
         {
             return device_offset < m_shift ? 0 : device_offset - m_shift;
         }
 
+        size64_t logical_size_(size64_t device_size) const noexcept
+        {
+            const auto shift = static_cast<size64_t>(m_shift);
+            return device_size < shift ? 0 : device_size - shift;
+        }
+
         /// Reports errc::value_too_large.
         /// @return the unchanged offset
-        size64_t too_large_(error_code_ptr ec)
+        offset64_t too_large_(error_code_ptr ec)
         {
             set_error_or_throw(ec, std::errc::value_too_large);
             error_code ignored;
@@ -313,7 +327,7 @@ namespace jetio
         /// Moves the device forward to `shift` if it has not reached it.
         bool enter_(error_code_ptr ec)
         {
-            const size64_t current = jetio::offset(m_device, ec);
+            const offset64_t current = jetio::offset(m_device, ec);
             if (has_error(ec))
                 return false;
             if (current < m_shift)
@@ -325,7 +339,7 @@ namespace jetio
         }
 
         Device &m_device;
-        size64_t m_shift = 0;
+        offset64_t m_shift = 0;
     };
 
     /// A window [begin, end) of a device, which the adaptor sees as a device of its own with
@@ -352,14 +366,14 @@ namespace jetio
         const Device &underlying() const noexcept { return m_device; }
         offset64_range section() const noexcept { return m_section; }
 
-        size64_t offset(error_code_ptr ec = nullptr) const noexcept
+        offset64_t offset(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
             return m_pos;
         }
 
         /// Moves the offset of the window; any offset is accepted.
-        size64_t seek(size64_t off, error_code_ptr ec = nullptr) noexcept
+        offset64_t seek(offset64_t off, error_code_ptr ec = nullptr) noexcept
         {
             clear_error(ec);
             return m_pos = off;
@@ -368,7 +382,7 @@ namespace jetio
         bool is_eof(error_code_ptr ec = nullptr) const noexcept
         {
             clear_error(ec);
-            return m_pos >= size_();
+            return std::cmp_greater_equal(m_pos, size_());
         }
 
         size64_t size(error_code_ptr ec = nullptr) const noexcept
@@ -390,7 +404,7 @@ namespace jetio
             if (!enter_(ec))
                 return buf.first(0);
             const mutable_buffer result = jetio::read(m_device, buf.first(count), ec);
-            m_pos += result.size();
+            m_pos += static_cast<offset64_t>(result.size());
             return result;
         }
 
@@ -407,7 +421,7 @@ namespace jetio
                     return buf;
                 const const_buffer rest = jetio::write(m_device, buf.first(count), ec);
                 written = count - rest.size();
-                m_pos += written;
+                m_pos += static_cast<offset64_t>(written);
                 if (has_error(ec))
                     return buf.last(buf.size() - written);
             }
@@ -472,14 +486,15 @@ namespace jetio
         /// @return the number of the first `wanted` bytes at the offset that are in the window
         std::size_t fitting_(std::size_t wanted) const noexcept
         {
-            const size64_t left = m_pos < size_() ? size_() - m_pos : 0;
+            const size64_t left =
+                std::cmp_less(m_pos, size_()) ? size_() - static_cast<size64_t>(m_pos) : 0;
             return static_cast<std::size_t>(std::min<size64_t>(wanted, left));
         }
 
         /// @pre m_pos < size_()
         bool enter_(error_code_ptr ec)
         {
-            jetio::seek(m_device, static_cast<size64_t>(m_section.begin) + m_pos, ec);
+            jetio::seek(m_device, m_section.begin + m_pos, ec);
             return !has_error(ec);
         }
 
@@ -498,6 +513,6 @@ namespace jetio
 
         Device &m_device;
         offset64_range m_section{};
-        size64_t m_pos = 0;
+        offset64_t m_pos = 0;
     };
 } // namespace jetio

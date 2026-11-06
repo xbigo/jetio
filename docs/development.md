@@ -49,3 +49,7 @@ Useful CMake targets: `jetio_unit`, `jetio_bench`, `jetio_fuzz` (build one kind 
 ## Editor
 
 VS Code with CMake Tools and clangd (see `.vscode/extensions.json`). CMake Tools copies `compile_commands.json` to the repository root, and clangd falls back to `-std=c++23 -Iinclude` for headers that no translation unit includes yet. The Microsoft C/C++ IntelliSense engine is disabled to avoid clashing with clangd.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on pushes to `main`, on pull requests and on demand. One job per preset on `ubuntu-24.04`, which only provides Docker: each job runs `tools/jetio-dev` (configure, build, test) in the container image, so the toolchain is the one of the image and not the one of the runner. Presets: `gcc-debug`, `clang-debug`, `clang-libcxx-debug`, `gcc-release-audit` (plus the benchmark smoke run), `clang-asan`, `clang-tsan`, `clang-fuzz`.

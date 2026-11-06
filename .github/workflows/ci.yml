@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.preset }}
+    # Pinned: the toolchain is the one of the container image, the runner only provides Docker.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - preset: linux-x64-gcc-debug
+          - preset: linux-x64-clang-debug
+          - preset: linux-x64-clang-libcxx-debug
+          - preset: linux-x64-gcc-release-audit
+            bench: linux-x64-gcc-release-audit-bench
+          - preset: linux-x64-clang-asan
+          - preset: linux-x64-clang-tsan
+          - preset: linux-x64-clang-fuzz
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: tools/jetio-dev configure -p ${{ matrix.preset }}
+      - name: Build
+        run: tools/jetio-dev build -p ${{ matrix.preset }}
+      - name: Test
+        run: tools/jetio-dev test -p ${{ matrix.preset }}
+      - name: Benchmark smoke run
+        if: matrix.bench
+        run: tools/jetio-dev test -p ${{ matrix.bench }}

@@ -1,5 +1,7 @@
 # jetio
 
+[![CI](https://github.com/xbigo/jetio/actions/workflows/ci.yml/badge.svg)](https://github.com/xbigo/jetio/actions/workflows/ci.yml)
+
 A simple C++ IO library. Header-only for now, ISO C++23.
 
 ## Quick start

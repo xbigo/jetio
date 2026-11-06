@@ -2,12 +2,24 @@
 
 ## Requirements
 
+On Linux the builds run in a Docker container by default, so Docker is the only requirement: `tools/jetio-dev` makes the image from `tools/docker/Dockerfile` the first time (Ubuntu 26.04 and `tools/setup/linux-apt.sh`) and runs every command in it. The user needs to be in the `docker` group.
+
+To build without Docker, install the same tools natively and pass `--no-docker` (or set `JETIO_DOCKER=0`): on Debian and Ubuntu, `tools/setup/linux-apt.sh` installs them; the image runs the same script, so both have the same requirements.
+
 - CMake 3.28 or newer, Ninja
-- GCC 14+ or Clang 19+ (the repo is tested with GCC 16 and Clang 21; the libc++ presets use Clang 22 and `libc++-22-dev`)
+- GCC 14+ or Clang 19+ (the libc++ presets use Clang 22 and `libc++-22-dev`; the sanitizer and fuzz presets need the compiler-rt of their Clang, `libclang-rt-dev`; the versions in use are in the [build matrix](design/build-matrix.md))
 - Python 3.10+ (stdlib only) for `tools/jetio-dev`
 - clang-format for `jetio-dev format`
 - Network access on first configure of tests and benchmarks (Catch2 and Google Benchmark are
   fetched unless installed)
+
+### The container
+
+The container gets the checkout at the same path as on the host (`-v <checkout>:<checkout>`, working directory the same) and runs as the user and group of the caller (`--user <uid>:<gid>`), so files that it creates belong to the caller and paths in compiler messages, `compile_commands.json` and ctest output are valid on both sides. The image knows no user of that id, which the tools do not need; `HOME` is `/tmp`. Nothing in the image depends on a user, so one image serves everyone.
+
+The build trees of the container are `build/docker/<preset>`, those of the host `build/<preset>`: the `binaryDir` of the presets reads the environment variable `JETIO_BUILD_ENV`, which is set to `docker/` in the container and is empty otherwise, so native tools (VS Code CMake Tools, plain `cmake --preset`) are not affected and the two kinds of tree never mix.
+
+The container runs with the default seccomp profile of Docker plus one rule, `personality(ADDR_NO_RANDOMIZE)`, which TSan needs (`tools/docker/seccomp.json`, see its [README](../tools/docker/README.md)).
 
 ## Presets
 
@@ -21,12 +33,12 @@
 | `linux-x64-clang-tsan` | Unit tests under TSan |
 | `linux-x64-clang-fuzz` | libFuzzer targets under ASan and UBSan |
 
-Build trees go to `build/<preset>`. Personal presets belong in `CMakeUserPresets.json` (ignored by git).
+Build trees go to `build/<preset>` (`build/docker/<preset>` in the container). Personal presets belong in `CMakeUserPresets.json` (ignored by git).
 
 ## Commands
 
 ```sh
-tools/jetio-dev configure|build|test|check -p <preset>
+tools/jetio-dev [--no-docker] configure|build|test|check -p <preset>
 tools/jetio-dev bench -p linux-x64-gcc-release
 tools/jetio-dev format [--check]
 tools/jetio-dev clean -p <preset>

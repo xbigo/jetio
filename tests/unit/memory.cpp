@@ -53,7 +53,7 @@ TEST_CASE("write grows the device, read returns the data", "[memory]")
     memory_device<> device;
     const auto data = bytes(10);
 
-    CHECK(write(device, data).empty());
+    CHECK(jetio::write(device, data).empty());
     CHECK(device.offset() == 10);
     CHECK(device.size() == 10);
     CHECK(device.is_eof());
@@ -62,7 +62,7 @@ TEST_CASE("write grows the device, read returns the data", "[memory]")
     CHECK(seek(device, 0) == 0);
     CHECK(!device.is_eof());
     std::vector<std::byte> out(4);
-    auto got = read(device, out);
+    auto got = jetio::read(device, out);
     CHECK(got.size() == 4);
     CHECK(got.data() == out.data());
     CHECK(std::equal(out.begin(), out.end(), data.begin()));
@@ -73,12 +73,12 @@ TEST_CASE("a short read means the end of the data", "[memory]")
 {
     memory_device<> device(vector_buffer_represent{bytes(6), 4});
     std::vector<std::byte> out(10);
-    CHECK(read(device, out).size() == 2);
+    CHECK(jetio::read(device, out).size() == 2);
     CHECK(device.is_eof());
-    CHECK(read(device, out).empty());
+    CHECK(jetio::read(device, out).empty());
     CHECK(device.offset() == 6);
 
-    CHECK(read(device, mutable_buffer{}).empty());
+    CHECK(jetio::read(device, mutable_buffer{}).empty());
 }
 
 TEST_CASE("reading and writing beyond the end", "[memory]")
@@ -87,11 +87,11 @@ TEST_CASE("reading and writing beyond the end", "[memory]")
 
     CHECK(seek(device, 100) == 100);
     std::vector<std::byte> out(3);
-    CHECK(read(device, out).empty());
+    CHECK(jetio::read(device, out).empty());
     CHECK(device.offset() == 100);
 
     const auto data = bytes(2, 0x40);
-    CHECK(write(device, data).empty());
+    CHECK(jetio::write(device, data).empty());
     CHECK(device.size() == 102);
     // the gap reads as zero
     const auto &stored = device.underlying().data;
@@ -104,7 +104,7 @@ TEST_CASE("writing nothing changes nothing", "[memory]")
 {
     memory_device<> device;
     CHECK(seek(device, 5) == 5);
-    CHECK(write(device, const_buffer{}).empty());
+    CHECK(jetio::write(device, const_buffer{}).empty());
     CHECK(device.size() == 0);
     CHECK(device.offset() == 5);
 }
@@ -118,13 +118,13 @@ TEST_CASE("writing nothing changes nothing", "[memory]")
 TEST_CASE("truncate sets the size, new space is zero", "[memory]")
 {
     memory_device<> device(vector_buffer_represent{bytes(4, 1), 2});
-    CHECK(truncate(device, 6) == 6);
+    CHECK(jetio::truncate(device, 6) == 6);
     CHECK(device.size() == 6);
     CHECK(device.offset() == 2);
     CHECK(device.underlying().data[3] == std::byte{4});
     CHECK(device.underlying().data[5] == std::byte{0});
 
-    CHECK(truncate(device, 1) == 1);
+    CHECK(jetio::truncate(device, 1) == 1);
     CHECK(device.size() == 1);
     CHECK(device.offset() == 2);
     CHECK(device.is_eof());
@@ -194,7 +194,7 @@ TEST_CASE("an error code is cleared on success", "[memory]")
 {
     memory_device<> device;
     error_code ec = std::make_error_code(std::errc::io_error);
-    CHECK(write(device, bytes(1), &ec).empty());
+    CHECK(jetio::write(device, bytes(1), &ec).empty());
     CHECK(!ec);
 
     ec = std::make_error_code(std::errc::io_error);
@@ -211,7 +211,7 @@ TEST_CASE("fixed size writable memory", "[memory]")
 
     SECTION("a write that fits")
     {
-        CHECK(write(device, bytes(8)).empty());
+        CHECK(jetio::write(device, bytes(8)).empty());
         CHECK(storage[7] == std::byte{7});
         CHECK(pos == 8);
     }
@@ -221,7 +221,7 @@ TEST_CASE("fixed size writable memory", "[memory]")
         seek(device, 5);
         const auto data = bytes(6, 1);
         error_code ec;
-        const auto rest = write(device, data, &ec);
+        const auto rest = jetio::write(device, data, &ec);
         CHECK(ec == std::errc::no_space_on_device);
         CHECK(rest.size() == 3);
         CHECK(rest.data() == data.data() + 3);
@@ -230,14 +230,14 @@ TEST_CASE("fixed size writable memory", "[memory]")
         CHECK(storage[7] == std::byte{3});
         CHECK(storage[4] == std::byte{0});
 
-        CHECK_THROWS_AS(write(device, data), io_error);
+        CHECK_THROWS_AS(jetio::write(device, data), io_error);
     }
 
     SECTION("a write beyond the end writes nothing")
     {
         seek(device, 20);
         error_code ec;
-        CHECK(write(device, bytes(1), &ec).size() == 1);
+        CHECK(jetio::write(device, bytes(1), &ec).size() == 1);
         CHECK(ec == std::errc::no_space_on_device);
         CHECK(pos == 20);
     }
@@ -260,7 +260,7 @@ TEST_CASE("read-only memory", "[memory]")
     memory_device<const_buffer_represent> device(const_buffer_represent{buffer, pos});
 
     std::vector<std::byte> out(8);
-    CHECK(read(device, out).size() == 5);
+    CHECK(jetio::read(device, out).size() == 5);
     CHECK(out[0] == std::byte{10});
     CHECK(device.is_eof());
     CHECK(seek(device, 1) == 1);
@@ -285,7 +285,7 @@ TEST_CASE("a represent with accessors", "[memory]")
 {
     static_assert(truncatable_represent<accessor_represent>);
     memory_device<accessor_represent> device;
-    CHECK(write(device, bytes(3)).empty());
+    CHECK(jetio::write(device, bytes(3)).empty());
     CHECK(device.underlying().bytes.size() == 3);
     CHECK(device.underlying().position == 3);
 }
@@ -336,11 +336,11 @@ TEST_CASE("an end that does not fit in size_t is an error", "[memory]")
     error_code ec;
 
     seek(device, std::numeric_limits<std::size_t>::max() - 1);
-    CHECK(write(device, bytes(4), &ec).size() == 4);
+    CHECK(jetio::write(device, bytes(4), &ec).size() == 4);
     CHECK(ec == std::errc::value_too_large);
     CHECK(device.size() == 0);
     CHECK(device.offset() == std::numeric_limits<std::size_t>::max() - 1);
-    CHECK_THROWS_AS(write(device, bytes(4)), io_error);
+    CHECK_THROWS_AS(jetio::write(device, bytes(4)), io_error);
 }
 
 TEST_CASE("a size beyond the maximum of the container is an error", "[memory]")
@@ -349,9 +349,9 @@ TEST_CASE("a size beyond the maximum of the container is an error", "[memory]")
     const size64_t too_large = size64_t{1} << 63;
     error_code ec;
 
-    CHECK(truncate(device, too_large, &ec) == 3);
+    CHECK(jetio::truncate(device, too_large, &ec) == 3);
     CHECK(ec == std::errc::value_too_large);
-    CHECK_THROWS_AS(truncate(device, too_large), io_error);
+    CHECK_THROWS_AS(jetio::truncate(device, too_large), io_error);
 
     // nothing changed
     CHECK(device.size() == 3);
@@ -364,16 +364,16 @@ TEST_CASE("failing to allocate leaves the device unchanged", "[memory]")
     static_assert(truncater<device_type> && write_map<device_type>);
 
     device_type device;
-    CHECK(write(device, bytes(4)).empty());
+    CHECK(jetio::write(device, bytes(4)).empty());
     limited_allocator<std::byte>::limit = 8;
     const auto restore = [] { limited_allocator<std::byte>::limit = ~std::size_t{0}; };
 
     error_code ec;
-    CHECK(truncate(device, 100, &ec) == 4);
+    CHECK(jetio::truncate(device, 100, &ec) == 4);
     CHECK(ec == std::errc::not_enough_memory);
     CHECK(device.size() == 4);
 
-    CHECK(write(device, bytes(100), &ec).size() == 100);
+    CHECK(jetio::write(device, bytes(100), &ec).size() == 100);
     CHECK(ec == std::errc::not_enough_memory);
     CHECK(device.size() == 4);
     CHECK(device.offset() == 4);
@@ -384,7 +384,7 @@ TEST_CASE("failing to allocate leaves the device unchanged", "[memory]")
 
     try
     {
-        write(device, bytes(100));
+        jetio::write(device, bytes(100));
         FAIL("no exception");
     }
     catch (const io_error &e)
@@ -394,6 +394,6 @@ TEST_CASE("failing to allocate leaves the device unchanged", "[memory]")
     CHECK(device.size() == 4);
 
     restore();
-    CHECK(write(device, bytes(100)).empty());
+    CHECK(jetio::write(device, bytes(100)).empty());
     CHECK(device.size() == 104);
 }

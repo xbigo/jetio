@@ -62,9 +62,9 @@ TEST_CASE("the protocol functions work on a conforming device", "[iocore]")
 {
     memory_device<> device;
     std::vector<std::byte> data(16);
-    CHECK_NOTHROW(write(device, data));
+    CHECK_NOTHROW(jetio::write(device, data));
     seek(device, 0);
-    CHECK_NOTHROW(read(device, data));
+    CHECK_NOTHROW(jetio::read(device, data));
     CHECK_NOTHROW(view_rd(device, {0, 16}));
 }
 
@@ -135,11 +135,11 @@ TEST_CASE("a device can provide its operations as free functions", "[iocore][adl
 
     custom::free_device device;
     std::vector<std::byte> out(3);
-    CHECK(read(device, out).size() == 3); // the default error_code_ptr is supplied
+    CHECK(jetio::read(device, out).size() == 3); // the default error_code_ptr is supplied
     CHECK(offset(device) == 3);
     CHECK(seek(device, 1) == 1);
     CHECK(seek_forward(device, 2) == 2); // falls back to the free seek
-    CHECK(read(device, out).size() == 2);
+    CHECK(jetio::read(device, out).size() == 2);
 }
 
 TEST_CASE("a free function takes precedence over a member", "[iocore][adl]")
@@ -147,6 +147,6 @@ TEST_CASE("a free function takes precedence over a member", "[iocore][adl]")
     static_assert(reader<custom::both_device>);
     custom::both_device device;
     std::vector<std::byte> out(3);
-    CHECK(read(device, out).size() == 3);
+    CHECK(jetio::read(device, out).size() == 3);
     CHECK(device.used_free);
 }

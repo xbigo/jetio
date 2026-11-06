@@ -2,6 +2,7 @@
 
 - CMake 3.28+, Ninja, CMake presets (version 6) as the single entry point for configure, build and test.
 - Python is a convenience layer only (`tools/jetio-dev`). It calls presets and never replaces CMake logic.
+- On Linux `tools/jetio-dev` runs the tools in a Docker container by default (image from `tools/docker/Dockerfile`, which runs `tools/setup/linux-apt.sh`); `--no-docker` uses the tools of the host, which the setup script installs on Debian and Ubuntu. The `binaryDir` of the presets is `build/$env{JETIO_BUILD_ENV}<preset>`, with `docker/` set in the container. See the [development guide](../development.md).
 - Standard: ISO C++23 with `CMAKE_CXX_EXTENSIONS OFF` (`-std=c++23`, not `gnu++23`). GCC and Clang also get `-Wpedantic -pedantic-errors`, so compiler extensions are errors. MSVC gets `/permissive-`.
 - Project-owned targets link `jetio::dev_options` for warnings, sanitizers and debug symbols. It is never installed, so it cannot leak into consumers.
 - Standard library: libstdc++ by default. The `libcxx` presets build everything, dependencies included, with `-stdlib=libc++` so both implementations are tested. They pin `clang++-22` because libc++ headers and compiler should come from the same LLVM release.

@@ -48,7 +48,7 @@ TEST_CASE("read_full fills the buffer from a device that reads less", "[cache_vi
 {
     trickle_device device(7);
     std::vector<std::byte> out(5);
-    CHECK(read(device, out).size() == 2); // read alone gives what the device gives
+    CHECK(jetio::read(device, out).size() == 2); // read alone gives what the device gives
     CHECK(offset(device) == 2);
 
     CHECK(read_full(device, out).size() == 5);
@@ -129,7 +129,7 @@ TEST_CASE("writer_to_view writes the bytes when the view is destroyed", "[cache_
 
     seek(device, 2);
     std::vector<std::byte> out(3);
-    read(device, out);
+    jetio::read(device, out);
     CHECK(out[0] == std::byte{100});
     CHECK(out[1] == std::byte{0});
     CHECK(out[2] == std::byte{102});
@@ -145,7 +145,7 @@ TEST_CASE("a view may end beyond the data and grow the device", "[cache_view]")
     }
     seek(device, 5);
     std::vector<std::byte> out(1);
-    read(device, out);
+    jetio::read(device, out);
     CHECK(out[0] == std::byte{77});
 
     {
@@ -260,7 +260,7 @@ TEST_CASE("the destructor writes everything to a device that takes less per writ
     CHECK(!ec);
     seek(device.memory(), 1);
     std::vector<std::byte> out(5);
-    CHECK(read(device.memory(), out).size() == 5);
+    CHECK(jetio::read(device.memory(), out).size() == 5);
     CHECK(out == bytes(5, 50));
 }
 
@@ -291,6 +291,6 @@ TEST_CASE("a moved view writes once", "[cache_view]")
     }
     seek(device, 0);
     std::vector<std::byte> out(1);
-    read(device, out);
+    jetio::read(device, out);
     CHECK(out[0] == std::byte{9});
 }

@@ -1,4 +1,4 @@
-#include <jetio/jetio.hpp>
+#include <jio/jio.hpp>
 
 #include <array>
 #include <cstddef>
@@ -6,7 +6,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace jetio;
+using namespace jio;
 
 namespace
 {
@@ -30,7 +30,7 @@ namespace
         explicit trickle_device(std::size_t n) : m_device(device_of(n)) {}
         mutable_buffer read(mutable_buffer buf, error_code_ptr ec = nullptr)
         {
-            return jetio::read(m_device, buf.first(std::min<std::size_t>(buf.size(), 2)), ec);
+            return jio::read(m_device, buf.first(std::min<std::size_t>(buf.size(), 2)), ec);
         }
         offset64_t offset(error_code_ptr ec = nullptr) const { return m_device.offset(ec); }
         offset64_t seek_forward(offset64_t off, error_code_ptr ec = nullptr)
@@ -48,7 +48,7 @@ TEST_CASE("read_full fills the buffer from a device that reads less", "[cache_vi
 {
     trickle_device device(7);
     std::vector<std::byte> out(5);
-    CHECK(jetio::read(device, out).size() == 2); // read alone gives what the device gives
+    CHECK(jio::read(device, out).size() == 2); // read alone gives what the device gives
     CHECK(offset(device) == 2);
 
     CHECK(read_full(device, out).size() == 5);
@@ -129,7 +129,7 @@ TEST_CASE("writer_to_view writes the bytes when the view is destroyed", "[cache_
 
     seek(device, 2);
     std::vector<std::byte> out(3);
-    jetio::read(device, out);
+    jio::read(device, out);
     CHECK(out[0] == std::byte{100});
     CHECK(out[1] == std::byte{0});
     CHECK(out[2] == std::byte{102});
@@ -145,7 +145,7 @@ TEST_CASE("a view may end beyond the data and grow the device", "[cache_view]")
     }
     seek(device, 5);
     std::vector<std::byte> out(1);
-    jetio::read(device, out);
+    jio::read(device, out);
     CHECK(out[0] == std::byte{77});
 
     {
@@ -216,7 +216,7 @@ namespace
     public:
         const_buffer write(const_buffer buf, error_code_ptr ec = nullptr)
         {
-            return jetio::write(m_device, buf, ec);
+            return jio::write(m_device, buf, ec);
         }
         offset64_t offset(error_code_ptr ec = nullptr) const { return m_device.offset(ec); }
         offset64_t seek(offset64_t off, error_code_ptr ec = nullptr)
@@ -238,7 +238,7 @@ namespace
         const_buffer write(const_buffer buf, error_code_ptr ec = nullptr)
         {
             const std::size_t n = std::min<std::size_t>(buf.size(), 2);
-            const const_buffer rest = jetio::write(m_device, buf.first(n), ec);
+            const const_buffer rest = jio::write(m_device, buf.first(n), ec);
             return buf.last(buf.size() - n + rest.size());
         }
         offset64_t offset(error_code_ptr ec = nullptr) const { return m_device.offset(ec); }
@@ -266,7 +266,7 @@ TEST_CASE("the destructor writes everything to a device that takes less per writ
     CHECK(!ec);
     seek(device.memory(), 1);
     std::vector<std::byte> out(5);
-    CHECK(jetio::read(device.memory(), out).size() == 5);
+    CHECK(jio::read(device.memory(), out).size() == 5);
     CHECK(out == bytes(5, 50));
 }
 
@@ -297,6 +297,6 @@ TEST_CASE("a moved view writes once", "[cache_view]")
     }
     seek(device, 0);
     std::vector<std::byte> out(1);
-    jetio::read(device, out);
+    jio::read(device, out);
     CHECK(out[0] == std::byte{9});
 }

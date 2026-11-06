@@ -1,8 +1,8 @@
 # IO protocol
 
-A device is any type with some of the operations below, each as a member function or as a free function found by argument dependent lookup, so a custom device need not be written in namespace `jetio`; a free function takes precedence over a member, so a type can be extended or overridden from outside (a derived type can override an inherited member). Do not write an unconstrained function template with the name of an operation: it would also take over the types of this library that wrap yours. The operations of namespace `jetio` (`jetio::read`, ...) are customization point objects: they call the member or the free function, supply the default `error_code_ptr` argument and check the protocol-level contract. A concept names each capability.
+A device is any type with some of the operations below, each as a member function or as a free function found by argument dependent lookup, so a custom device need not be written in namespace `jio`; a free function takes precedence over a member, so a type can be extended or overridden from outside (a derived type can override an inherited member). Do not write an unconstrained function template with the name of an operation: it would also take over the types of this library that wrap yours. The operations of namespace `jio` (`jio::read`, ...) are customization point objects: they call the member or the free function, supply the default `error_code_ptr` argument and check the protocol-level contract. A concept names each capability.
 
-The operations are objects, so they are not overloaded with functions of the same name: call them qualified (`jetio::read(device, buf)`), because `using namespace jetio` makes an unqualified `read` ambiguous where `::read` of `<unistd.h>` is declared. Code in namespace `jetio` does not name a local variable or parameter `read`, `write`, `sync`, `size`, `offset`, `seek`, ... (clang's `-Wshadow`).
+The operations are objects, so they are not overloaded with functions of the same name: call them qualified (`jio::read(device, buf)`), because `using namespace jio` makes an unqualified `read` ambiguous where `::read` of `<unistd.h>` is declared. Code in namespace `jio` does not name a local variable or parameter `read`, `write`, `sync`, `size`, `offset`, `seek`, ... (clang's `-Wshadow`).
 
 | Capability | Concept | Operation |
 | --- | --- | --- |
@@ -35,7 +35,7 @@ The operations are objects, so they are not overloaded with functions of the sam
 
 ## Protocol-level contracts
 
-Checked by the operations of namespace `jetio`, for every device, whether it provides them as members or as free functions. These are plain checks: debug builds only.
+Checked by the operations of namespace `jio`, for every device, whether it provides them as members or as free functions. These are plain checks: debug builds only.
 
 | Operation | Contract |
 | --- | --- |
@@ -62,7 +62,7 @@ Checked by the operations of namespace `jetio`, for every device, whether it pro
 
 ### Pseudo devices
 
-`bad_device` is for tests of code that must cope with errors and short transfers. The policy has a member function for each operation it takes over, `foo(device, args..., ec)` with the memory device first, and decides whether and how the device does it, what is reported and what is returned; an operation without such a function goes to the device. The queries `offset`, `is_eof` and `size` are `const` functions of the policy. Policies in `jetio::bad`: `after_bytes` (a number of bytes through, then errors), `on_call` (the n-th operation fails once), `at_most` (short reads and writes). It does not wrap another device: a policy over a given device would be a test of that device, and limiting a rate is an adaptor.
+`bad_device` is for tests of code that must cope with errors and short transfers. The policy has a member function for each operation it takes over, `foo(device, args..., ec)` with the memory device first, and decides whether and how the device does it, what is reported and what is returned; an operation without such a function goes to the device. The queries `offset`, `is_eof` and `size` are `const` functions of the policy. Policies in `jio::bad`: `after_bytes` (a number of bytes through, then errors), `on_call` (the n-th operation fails once), `at_most` (short reads and writes). It does not wrap another device: a policy over a given device would be a test of that device, and limiting a rate is an adaptor.
 
 ### Memory represents
 

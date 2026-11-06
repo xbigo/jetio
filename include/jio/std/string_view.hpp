@@ -36,8 +36,8 @@
 // std::basic_string_view, on the caller's word; or from a pointer with an explicit capacity:
 // scanning for the terminator, or with the length n when the buffer is known.
 
-#include <jetio/std/contract.hpp>
-#include <jetio/std/string_view_concepts.hpp>
+#include <jio/std/contract.hpp>
+#include <jio/std/string_view_concepts.hpp>
 
 #include <compare>
 #include <concepts>
@@ -50,7 +50,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace jetio
+namespace jio
 {
     namespace detail
     {
@@ -491,15 +491,15 @@ namespace jetio
             return nt_string_view(text, src_capacity(length + 1));
         }
     } // namespace literals
-} // namespace jetio
+} // namespace jio
 
 // A view is cheap to copy, and its iterators outlive it: it is a view and a borrowed range.
-template <jetio::string_view_family V> inline constexpr bool std::ranges::enable_view<V> = true;
-template <jetio::string_view_family V>
+template <jio::string_view_family V> inline constexpr bool std::ranges::enable_view<V> = true;
+template <jio::string_view_family V>
 inline constexpr bool std::ranges::enable_borrowed_range<V> = true;
 
 // The hash of a view is the one of the std::basic_string_view with the same characters.
-template <jetio::string_view_family V> struct std::hash<V>
+template <jio::string_view_family V> struct std::hash<V>
 {
     std::size_t operator()(const V &view) const noexcept
     {

@@ -7,8 +7,8 @@
 //   writer_to_view  view_wr gives memory that is written to the device when the view is destroyed
 //                   (cache_wr_view)
 
-#include <jetio/algorithm.hpp>
-#include <jetio/iocore.hpp>
+#include <jio/algorithm.hpp>
+#include <jio/iocore.hpp>
 
 #include <cstddef>
 #include <new>
@@ -17,7 +17,7 @@
 #include <utility>
 #include <vector>
 
-namespace jetio
+namespace jio
 {
     /// Read-only view of a copy of a part of a device.
     class cache_rd_view
@@ -74,7 +74,7 @@ namespace jetio
             }
             if constexpr (sizer<Device &>)
             {
-                const size64_t size = jetio::size(device, ec);
+                const size64_t size = jio::size(device, ec);
                 if (has_error(ec))
                     return false;
                 if (size != unknown_size && size < static_cast<size64_t>(unknown_offset))
@@ -105,7 +105,7 @@ namespace jetio
         size64_t size(error_code_ptr ec = nullptr) const
             requires sizer<Device &>
         {
-            return jetio::size(m_device, ec);
+            return jio::size(m_device, ec);
         }
 
         /// @pre is_valid_range(rng)
@@ -128,13 +128,13 @@ namespace jetio
                 return {};
 
             if constexpr (random_access<Device &>)
-                jetio::seek(m_device, rng.begin, ec);
+                jio::seek(m_device, rng.begin, ec);
             else
-                jetio::seek_forward(m_device, rng.begin, ec);
+                jio::seek_forward(m_device, rng.begin, ec);
             if (has_error(ec))
                 return {};
 
-            const mutable_buffer filled = jetio::read_full(m_device, data, ec);
+            const mutable_buffer filled = jio::read_full(m_device, data, ec);
             if (has_error(ec))
                 return {};
             if (filled.size() != data.size())
@@ -200,13 +200,13 @@ namespace jetio
     private:
         void write_back_(error_code_ptr ec)
         {
-            jetio::seek(*m_device, m_pos, ec);
+            jio::seek(*m_device, m_pos, ec);
             if (has_error(ec))
                 return;
             // write may take less than it is given: write the rest, stop at the first error
             for (const_buffer rest = m_data; !rest.empty();)
             {
-                rest = jetio::write(*m_device, rest, ec);
+                rest = jio::write(*m_device, rest, ec);
                 if (has_error(ec))
                     return;
             }
@@ -236,7 +236,7 @@ namespace jetio
         size64_t size(error_code_ptr ec = nullptr) const
             requires sizer<Device &>
         {
-            return jetio::size(m_device, ec);
+            return jio::size(m_device, ec);
         }
 
         /// @pre is_valid_range(rng)
@@ -264,4 +264,4 @@ namespace jetio
     private:
         Device &m_device;
     };
-} // namespace jetio
+} // namespace jio

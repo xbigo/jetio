@@ -10,7 +10,7 @@ Every public function states its contract and the library checks it where that i
 | `JIO_Expects_critical`, `JIO_Assert_critical` | `pre`, `contract_assert` | Same, but also checked in release builds |
 | `JIO_Expects_audit`, `JIO_Ensures_audit`, `JIO_Assert_audit` | none | Same, for checks too expensive for every build; C++26 has no audit level |
 
-Header: `jetio/std/contract.hpp`: the contract facility is a language extension, and language extensions live in the `std` subdirectory (the namespace is `jetio`, because `jetio::std` would hide the real `std`). These are the only macros in the public interface of the library, apart from the `JIO_CONTRACT_LEVEL` switch. They are not exported by a C++ module; the checks stay compiled into the module. A `JIO_Ensures_critical` does not exist yet; add it when a postcondition needs it.
+Header: `jio/std/contract.hpp`: the contract facility is a language extension, and language extensions live in the `std` subdirectory (the namespace is `jio`, because `jio::std` would hide the real `std`). These are the only macros in the public interface of the library, apart from the `JIO_CONTRACT_LEVEL` switch. They are not exported by a C++ module; the checks stay compiled into the module. A `JIO_Ensures_critical` does not exist yet; add it when a postcondition needs it.
 
 ## What is a contract violation and what is an error
 

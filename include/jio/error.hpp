@@ -9,12 +9,12 @@
 //                  failure
 //   ec == nullptr  the operation throws io_error on failure
 
-#include <jetio/std/contract.hpp>
+#include <jio/std/contract.hpp>
 
 #include <system_error>
 #include <type_traits>
 
-namespace jetio
+namespace jio
 {
     using error_code = std::error_code;
 
@@ -60,4 +60,4 @@ namespace jetio
     {
         set_error_or_throw(ec, make_error_code(e));
     }
-} // namespace jetio
+} // namespace jio

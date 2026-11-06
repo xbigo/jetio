@@ -4,7 +4,7 @@
 // per device. None of them can fail, so none reports an error. (bad_device.hpp has the one that
 // fails on demand.)
 
-#include <jetio/iocore.hpp>
+#include <jio/iocore.hpp>
 
 #include <algorithm>
 #include <concepts>
@@ -14,7 +14,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace jetio
+namespace jio
 {
     namespace detail
     {
@@ -291,4 +291,4 @@ namespace jetio
             return 0;
         }
     };
-} // namespace jetio
+} // namespace jio

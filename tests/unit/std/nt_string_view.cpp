@@ -1,5 +1,5 @@
-#include <jetio/std/string_view.hpp>
-#include <jetio/std/string_view_io.hpp>
+#include <jio/std/string_view.hpp>
+#include <jio/std/string_view_io.hpp>
 
 #include <array>
 #include <format>
@@ -11,7 +11,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace jetio;
+using namespace jio;
 
 namespace
 {
@@ -41,7 +41,7 @@ namespace
     concept orderable_between = requires(A a, B b) { a < b; };
 } // namespace
 
-namespace jetio
+namespace jio
 {
     template <> inline constexpr end_guarantee end_guarantee_of<liar> = end_guarantee::none;
 }
@@ -65,9 +65,9 @@ TEST_CASE("the guarantee of a type", "[nt_string_view][concepts]")
 TEST_CASE("get_c_str finds the member or the ADL function", "[nt_string_view]")
 {
     const std::string s = "abc";
-    CHECK(jetio::get_c_str(s) == s.c_str());
+    CHECK(jio::get_c_str(s) == s.c_str());
     const legacy_string legacy{"xyz"};
-    CHECK(jetio::get_c_str(legacy) == legacy.text.c_str());
+    CHECK(jio::get_c_str(legacy) == legacy.text.c_str());
 }
 
 TEST_CASE("a default view is empty and terminated", "[nt_string_view]")

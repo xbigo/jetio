@@ -1,11 +1,11 @@
 #pragma once
 
-#include <jetio/std/contract.hpp>
+#include <jio/std/contract.hpp>
 
 #include <exception>
 #include <string>
 
-namespace jetio::test
+namespace jio::test
 {
     /// Thrown by the handler installed by scoped_throwing_contract_handler.
     struct contract_failure : std::exception
@@ -39,4 +39,4 @@ namespace jetio::test
 
         contract_violation_handler m_previous;
     };
-} // namespace jetio::test
+} // namespace jio::test

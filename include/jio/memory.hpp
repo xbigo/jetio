@@ -9,7 +9,7 @@
 //   mutable_buffer_represent  refers to fixed-size writable memory
 //   const_buffer_represent    refers to fixed-size read-only memory
 
-#include <jetio/iocore.hpp>
+#include <jio/iocore.hpp>
 
 #include <algorithm>
 #include <concepts>
@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-namespace jetio
+namespace jio
 {
     /// Read-only view of a part of a memory device. Valid until the device is modified,
     /// moved or destroyed.
@@ -424,4 +424,4 @@ namespace jetio
 
         Represent m_rep;
     };
-} // namespace jetio
+} // namespace jio

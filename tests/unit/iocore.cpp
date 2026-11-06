@@ -1,11 +1,11 @@
-#include <jetio/jetio.hpp>
+#include <jio/jio.hpp>
 
 #include <algorithm>
 #include <vector>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace jetio;
+using namespace jio;
 
 namespace
 {
@@ -62,56 +62,54 @@ TEST_CASE("the protocol functions work on a conforming device", "[iocore]")
 {
     memory_device<> device;
     std::vector<std::byte> data(16);
-    CHECK_NOTHROW(jetio::write(device, data));
+    CHECK_NOTHROW(jio::write(device, data));
     seek(device, 0);
-    CHECK_NOTHROW(jetio::read(device, data));
+    CHECK_NOTHROW(jio::read(device, data));
     CHECK_NOTHROW(view_rd(device, {0, 16}));
 }
 
-// Devices written outside namespace jetio, with free functions found by ADL.
+// Devices written outside namespace jio, with free functions found by ADL.
 namespace custom
 {
     struct free_device
     {
         std::vector<std::byte> data = std::vector<std::byte>(4, std::byte{7});
-        jetio::offset64_t pos = 0;
+        jio::offset64_t pos = 0;
     };
 
-    jetio::mutable_buffer read(free_device &device, jetio::mutable_buffer buf,
-                               jetio::error_code_ptr ec)
+    jio::mutable_buffer read(free_device &device, jio::mutable_buffer buf, jio::error_code_ptr ec)
     {
-        jetio::clear_error(ec);
+        jio::clear_error(ec);
         const auto count =
             std::min(buf.size(), device.data.size() - static_cast<std::size_t>(device.pos));
         std::copy_n(device.data.begin() + static_cast<std::ptrdiff_t>(device.pos), count,
                     buf.begin());
-        device.pos += static_cast<jetio::offset64_t>(count);
+        device.pos += static_cast<jio::offset64_t>(count);
         return buf.first(count);
     }
 
-    jetio::offset64_t offset(const free_device &device, jetio::error_code_ptr ec)
+    jio::offset64_t offset(const free_device &device, jio::error_code_ptr ec)
     {
-        jetio::clear_error(ec);
+        jio::clear_error(ec);
         return device.pos;
     }
 
-    jetio::offset64_t seek(free_device &device, jetio::offset64_t off, jetio::error_code_ptr ec)
+    jio::offset64_t seek(free_device &device, jio::offset64_t off, jio::error_code_ptr ec)
     {
-        jetio::clear_error(ec);
+        jio::clear_error(ec);
         return device.pos = off;
     }
 
     // Both: the free function is used.
     struct both_device
     {
-        jetio::mutable_buffer read(jetio::mutable_buffer buf, jetio::error_code_ptr)
+        jio::mutable_buffer read(jio::mutable_buffer buf, jio::error_code_ptr)
         {
             return buf.first(0);
         }
         bool used_free = false;
     };
-    jetio::mutable_buffer read(both_device &device, jetio::mutable_buffer buf,
-                               jetio::error_code_ptr)
+    jio::mutable_buffer read(both_device &device, jio::mutable_buffer buf, jio::error_code_ptr)
     {
         device.used_free = true;
         return buf;
@@ -136,11 +134,11 @@ TEST_CASE("a device can provide its operations as free functions", "[iocore][adl
 
     custom::free_device device;
     std::vector<std::byte> out(3);
-    CHECK(jetio::read(device, out).size() == 3); // the default error_code_ptr is supplied
+    CHECK(jio::read(device, out).size() == 3); // the default error_code_ptr is supplied
     CHECK(offset(device) == 3);
     CHECK(seek(device, 1) == 1);
     CHECK(seek_forward(device, 2) == 2); // falls back to the free seek
-    CHECK(jetio::read(device, out).size() == 2);
+    CHECK(jio::read(device, out).size() == 2);
 }
 
 TEST_CASE("a free function takes precedence over a member", "[iocore][adl]")
@@ -148,6 +146,6 @@ TEST_CASE("a free function takes precedence over a member", "[iocore][adl]")
     static_assert(reader<custom::both_device>);
     custom::both_device device;
     std::vector<std::byte> out(3);
-    CHECK(jetio::read(device, out).size() == 3);
+    CHECK(jio::read(device, out).size() == 3);
     CHECK(device.used_free);
 }

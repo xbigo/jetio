@@ -1,5 +1,5 @@
 // Infrastructure smoke fuzzer; replace with real parsers/readers once they exist.
-#include <jetio/jetio.hpp>
+#include <jio/jio.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -8,6 +8,6 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t *data, std::size_t size
 {
     (void)data;
     (void)size;
-    (void)jetio::version_major;
+    (void)jio::version_major;
     return 0;
 }

@@ -1,4 +1,4 @@
-#include <jetio/jetio.hpp>
+#include <jio/jio.hpp>
 
 #include <cstdlib>
 #include <exception>
@@ -8,8 +8,7 @@ int main()
 {
     try
     {
-        std::println("jetio {}.{}.{}", jetio::version_major, jetio::version_minor,
-                     jetio::version_patch);
+        std::println("jetio {}.{}.{}", jio::version_major, jio::version_minor, jio::version_patch);
     }
     catch (const std::exception &)
     {

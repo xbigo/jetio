@@ -1,6 +1,6 @@
 # fixed_vector
 
-`jetio/std/fixed_vector.hpp`. A vector over memory it does not allocate: the elements `[0, size)` of a buffer with room for `capacity` elements. It has the interface of `std::vector` except growth, and takes care of constructing and destroying the elements, which is the hard part of working in raw memory.
+`jio/std/fixed_vector.hpp`. A vector over memory it does not allocate: the elements `[0, size)` of a buffer with room for `capacity` elements. It has the interface of `std::vector` except growth, and takes care of constructing and destroying the elements, which is the hard part of working in raw memory.
 
 ## Represent
 

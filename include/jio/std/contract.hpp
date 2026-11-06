@@ -31,7 +31,7 @@
 #endif
 #endif
 
-namespace jetio
+namespace jio
 {
     inline constexpr int contract_level = JIO_CONTRACT_LEVEL;
 
@@ -108,16 +108,16 @@ namespace jetio
     {
         detail::violation_handler.load()(
             contract_violation{.kind = kind, .expression = expression, .location = location});
-        std::fputs("jetio: the contract violation handler returned\n", stderr);
+        std::fputs("jio: the contract violation handler returned\n", stderr);
         std::abort();
     }
-} // namespace jetio
+} // namespace jio
 
 // The condition is not evaluated if the level is too low, but it is always compiled.
 #define JIO_CONTRACT_CHECK_(level, kind, ...)                                                      \
     static_cast<void>(                                                                             \
         (JIO_CONTRACT_LEVEL < (level)) || static_cast<bool>(__VA_ARGS__) ||                        \
-        (::jetio::handle_contract_violation(::jetio::contract_kind::kind, #__VA_ARGS__), false))
+        (::jio::handle_contract_violation(::jio::contract_kind::kind, #__VA_ARGS__), false))
 
 #define JIO_Expects_critical(...) JIO_CONTRACT_CHECK_(1, precondition, __VA_ARGS__)
 #define JIO_Assert_critical(...) JIO_CONTRACT_CHECK_(1, assertion, __VA_ARGS__)

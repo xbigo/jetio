@@ -1,6 +1,6 @@
 // White-box tests of the contract facility. A violated contract cannot be continued, so the
 // handler throws and the tests catch the exception.
-#include <jetio/std/contract.hpp>
+#include <jio/std/contract.hpp>
 
 #include <optional>
 #include <type_traits>
@@ -8,14 +8,14 @@
 #include "support/contract_guard.hpp"
 #include <catch2/catch_test_macros.hpp>
 
-using jetio::contract_kind;
-using jetio::test::contract_failure;
+using jio::contract_kind;
+using jio::test::contract_failure;
 
 namespace
 {
     constexpr bool checked(int min_level)
     {
-        return jetio::contract_level >= min_level;
+        return jio::contract_level >= min_level;
     }
 
     template <typename F> std::optional<contract_failure> violation_of(F &&f)
@@ -41,7 +41,7 @@ namespace
             CHECK(failure.value().kind == kind);
     }
 
-    [[noreturn]] void some_handler(const jetio::contract_violation &v)
+    [[noreturn]] void some_handler(const jio::contract_violation &v)
     {
         throw contract_failure(v);
     }
@@ -49,7 +49,7 @@ namespace
 
 TEST_CASE("a satisfied contract is silent", "[contract]")
 {
-    jetio::test::scoped_throwing_contract_handler handler;
+    jio::test::scoped_throwing_contract_handler handler;
     CHECK_NOTHROW(JIO_Expects(1 + 1 == 2));
     CHECK_NOTHROW(JIO_Ensures(true));
     CHECK_NOTHROW(JIO_Assert(true));
@@ -63,7 +63,7 @@ TEST_CASE("a satisfied contract is silent", "[contract]")
 // A check is made if the level reaches the level of its macro: critical 1, default 2, audit 3.
 TEST_CASE("the level decides which checks are made", "[contract]")
 {
-    jetio::test::scoped_throwing_contract_handler handler;
+    jio::test::scoped_throwing_contract_handler handler;
 
     expect_checked_from(1, contract_kind::precondition, [] { JIO_Expects_critical(false); });
     expect_checked_from(1, contract_kind::assertion, [] { JIO_Assert_critical(false); });
@@ -79,17 +79,17 @@ TEST_CASE("the level decides which checks are made", "[contract]")
 
 TEST_CASE("a condition may contain commas", "[contract]")
 {
-    jetio::test::scoped_throwing_contract_handler handler;
+    jio::test::scoped_throwing_contract_handler handler;
     CHECK_NOTHROW(JIO_Expects(std::is_same_v<int, int>));
     CHECK(violation_of([] { JIO_Expects(std::is_same_v<int, long>); }).has_value() == checked(2));
 }
 
 TEST_CASE("a null handler restores the default", "[contract]")
 {
-    const auto previous = jetio::set_contract_violation_handler(&some_handler);
-    const auto mine = jetio::set_contract_violation_handler(nullptr);
+    const auto previous = jio::set_contract_violation_handler(&some_handler);
+    const auto mine = jio::set_contract_violation_handler(nullptr);
     CHECK(mine == &some_handler);
-    const auto restored = jetio::set_contract_violation_handler(previous);
+    const auto restored = jio::set_contract_violation_handler(previous);
     CHECK(restored != nullptr);
     CHECK(restored != &some_handler);
 }

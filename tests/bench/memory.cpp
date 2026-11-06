@@ -1,6 +1,6 @@
 // Operations on a memory_device through the protocol functions. Run in a release preset and
 // in its -audit twin to see what contract checking costs.
-#include <jetio/jetio.hpp>
+#include <jio/jio.hpp>
 
 #include <benchmark/benchmark.h>
 
@@ -12,10 +12,10 @@ namespace
 {
     constexpr std::size_t device_size = 1 << 16;
 
-    jetio::memory_device<> make_device()
+    jio::memory_device<> make_device()
     {
-        return jetio::memory_device<>(
-            jetio::vector_buffer_represent{std::vector<std::byte>(device_size), 0});
+        return jio::memory_device<>(
+            jio::vector_buffer_represent{std::vector<std::byte>(device_size), 0});
     }
 } // namespace
 
@@ -25,8 +25,8 @@ static void memory_read(benchmark::State &state)
     std::vector<std::byte> out(static_cast<std::size_t>(state.range(0)));
     for (auto _ : state)
     {
-        jetio::seek(device, 0);
-        benchmark::DoNotOptimize(jetio::read(device, out));
+        jio::seek(device, 0);
+        benchmark::DoNotOptimize(jio::read(device, out));
     }
     state.SetBytesProcessed(state.iterations() * state.range(0));
 }
@@ -38,8 +38,8 @@ static void memory_write(benchmark::State &state)
     const std::vector<std::byte> data(static_cast<std::size_t>(state.range(0)));
     for (auto _ : state)
     {
-        jetio::seek(device, 0);
-        benchmark::DoNotOptimize(jetio::write(device, data));
+        jio::seek(device, 0);
+        benchmark::DoNotOptimize(jio::write(device, data));
     }
     state.SetBytesProcessed(state.iterations() * state.range(0));
 }
@@ -49,7 +49,7 @@ static void memory_view_rd(benchmark::State &state)
 {
     auto device = make_device();
     for (auto _ : state)
-        benchmark::DoNotOptimize(jetio::view_rd(device, {128, 128 + state.range(0)}));
+        benchmark::DoNotOptimize(jio::view_rd(device, {128, 128 + state.range(0)}));
 }
 BENCHMARK(memory_view_rd)->Arg(16)->Arg(4096);
 
@@ -60,9 +60,9 @@ static void memory_read_small_sequence(benchmark::State &state)
     std::array<std::byte, 4> out;
     for (auto _ : state)
     {
-        jetio::seek(device, 0);
+        jio::seek(device, 0);
         for (std::size_t i = 0; i < device_size / out.size(); ++i)
-            benchmark::DoNotOptimize(jetio::read(device, out));
+            benchmark::DoNotOptimize(jio::read(device, out));
     }
     state.SetItemsProcessed(state.iterations() *
                             static_cast<std::int64_t>(device_size / out.size()));

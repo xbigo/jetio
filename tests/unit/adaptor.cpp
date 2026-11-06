@@ -1,4 +1,4 @@
-#include <jetio/jetio.hpp>
+#include <jio/jio.hpp>
 
 #include <array>
 #include <cstddef>
@@ -6,7 +6,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace jetio;
+using namespace jio;
 
 namespace
 {
@@ -45,7 +45,7 @@ namespace
     std::vector<std::byte> read_n(auto &device, std::size_t n)
     {
         std::vector<std::byte> out(n);
-        out.resize(jetio::read(device, out).size());
+        out.resize(jio::read(device, out).size());
         return out;
     }
 } // namespace
@@ -106,9 +106,9 @@ TEST_CASE("multiplex_device writes where its own offset is", "[adaptor][multiple
     multiplex_device b(device, 4);
 
     const auto data = bytes(2, 100);
-    CHECK(jetio::write(a, data).empty());
-    CHECK(jetio::write(b, data).empty());
-    CHECK(jetio::write(a, data).empty());
+    CHECK(jio::write(a, data).empty());
+    CHECK(jio::write(b, data).empty());
+    CHECK(jio::write(a, data).empty());
     CHECK(a.offset() == 4);
     CHECK(b.offset() == 6);
 
@@ -117,9 +117,9 @@ TEST_CASE("multiplex_device writes where its own offset is", "[adaptor][multiple
                                           std::byte{101}, std::byte{100}, std::byte{101}};
     CHECK(read_n(a, 10) == expected);
 
-    CHECK(jetio::truncate(a, 3) == 3);
+    CHECK(jio::truncate(a, 3) == 3);
     CHECK(a.size() == 3);
-    jetio::sync(a);
+    jio::sync(a);
     CHECK(address(view_rd(a, {1, 3})).size() == 2);
 }
 
@@ -176,12 +176,12 @@ TEST_CASE("shift_device moves views, writes and truncation by the shift", "[adap
 
     const auto data = bytes(2, 200);
     seek(shifted, 1);
-    CHECK(jetio::write(shifted, data).empty());
+    CHECK(jio::write(shifted, data).empty());
     CHECK(read_n(device, 0).empty());
     seek(device, 5);
     CHECK(read_n(device, 2) == data);
 
-    CHECK(jetio::truncate(shifted, 3) == 3);
+    CHECK(jio::truncate(shifted, 3) == 3);
     CHECK(device.size() == 7);
     CHECK(shifted.size() == 3);
 }
@@ -197,7 +197,7 @@ TEST_CASE("shift_device reports what does not fit", "[adaptor][shift]")
     CHECK(seek(shifted, far, &ec) == 0);
     CHECK(ec == std::errc::value_too_large);
     CHECK_THROWS_AS(seek(shifted, far), io_error);
-    CHECK(jetio::truncate(shifted, huge, &ec) == 6); // the unchanged size, 10 less the shift
+    CHECK(jio::truncate(shifted, huge, &ec) == 6); // the unchanged size, 10 less the shift
     CHECK(ec == std::errc::value_too_large);
 
     CHECK(address(view_rd(shifted, {far, unknown_offset}, &ec)).empty());
@@ -255,7 +255,7 @@ TEST_CASE("a write to a window stops at its end", "[adaptor][sub]")
     const auto data = bytes(5, 100);
     seek(window, 1);
     error_code ec;
-    const const_buffer rest = jetio::write(window, data, &ec);
+    const const_buffer rest = jio::write(window, data, &ec);
     CHECK(ec == std::errc::no_space_on_device);
     CHECK(rest.size() == 3); // two bytes fit
     CHECK(rest.data() == data.data() + 2);
@@ -267,10 +267,10 @@ TEST_CASE("a write to a window stops at its end", "[adaptor][sub]")
     CHECK(read_n(device, 4) == expected);
 
     // at the end nothing fits; writing nothing is fine
-    CHECK(jetio::write(window, data, &ec).size() == 5);
+    CHECK(jio::write(window, data, &ec).size() == 5);
     CHECK(ec == std::errc::no_space_on_device);
-    CHECK_THROWS_AS(jetio::write(window, data), io_error);
-    CHECK(jetio::write(window, const_buffer{}, &ec).empty());
+    CHECK_THROWS_AS(jio::write(window, data), io_error);
+    CHECK(jio::write(window, const_buffer{}, &ec).empty());
     CHECK(!ec);
 }
 
@@ -297,12 +297,12 @@ TEST_CASE("a window cannot be resized", "[adaptor][sub]")
     auto device = device_of(10);
     sub_device window(device, {2, 7});
 
-    CHECK(jetio::truncate(window, 5) == 5);
+    CHECK(jio::truncate(window, 5) == 5);
     error_code ec;
-    CHECK(jetio::truncate(window, 4, &ec) == 5);
+    CHECK(jio::truncate(window, 4, &ec) == 5);
     CHECK(ec == std::errc::invalid_argument);
-    CHECK_THROWS_AS(jetio::truncate(window, 6), io_error);
-    jetio::sync(window);
+    CHECK_THROWS_AS(jio::truncate(window, 6), io_error);
+    jio::sync(window);
     CHECK(device.size() == 10);
 }
 

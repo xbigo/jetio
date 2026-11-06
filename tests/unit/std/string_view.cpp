@@ -1,5 +1,5 @@
-#include <jetio/std/string_view.hpp>
-#include <jetio/std/string_view_io.hpp>
+#include <jio/std/string_view.hpp>
+#include <jio/std/string_view_io.hpp>
 
 #include <array>
 #include <format>
@@ -12,7 +12,7 @@
 #include <catch2/catch_template_test_macros.hpp>
 #include <catch2/catch_test_macros.hpp>
 
-using namespace jetio;
+using namespace jio;
 
 namespace
 {

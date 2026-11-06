@@ -2,11 +2,11 @@
 
 // Algorithms on devices, written with the protocol of iocore.hpp only.
 
-#include <jetio/iocore.hpp>
+#include <jio/iocore.hpp>
 
 #include <cstddef>
 
-namespace jetio
+namespace jio
 {
     /// Reads until buf is full, the data ends or an error occurs: read may return less.
     /// @return the part of buf that was filled, a prefix of buf; shorter than buf only at the
@@ -19,11 +19,11 @@ namespace jetio
         std::size_t done = 0;
         while (done < buf.size())
         {
-            const mutable_buffer part = jetio::read(device, buf.subspan(done), ec);
+            const mutable_buffer part = jio::read(device, buf.subspan(done), ec);
             done += part.size();
             if (has_error(ec) || part.empty())
                 break;
         }
         return buf.first(done);
     }
-} // namespace jetio
+} // namespace jio

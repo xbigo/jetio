@@ -1,4 +1,4 @@
-#include <jetio/std/fixed_vector.hpp>
+#include <jio/std/fixed_vector.hpp>
 
 #include <cstddef>
 #include <memory>
@@ -8,7 +8,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace jetio;
+using namespace jio;
 
 namespace
 {

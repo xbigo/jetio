@@ -1,13 +1,13 @@
 #pragma once
 
-#include <jetio/std/contract.hpp>
+#include <jio/std/contract.hpp>
 
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <utility>
 
-namespace jetio
+namespace jio
 {
     // Sizes and offsets of devices are 64 bit on every platform, so that 32 bit targets can
     // address large files. Conversion to the platform's size_t is explicit.
@@ -82,4 +82,4 @@ namespace jetio
         JIO_Expects_critical(std::in_range<std::ptrdiff_t>(n));
         return static_cast<std::ptrdiff_t>(n);
     }
-} // namespace jetio
+} // namespace jio

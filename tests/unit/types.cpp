@@ -1,10 +1,10 @@
-#include <jetio/types.hpp>
+#include <jio/types.hpp>
 
 #include <limits>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace jetio;
+using namespace jio;
 
 TEST_CASE("valid ranges", "[types]")
 {

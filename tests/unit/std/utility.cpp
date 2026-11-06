@@ -1,10 +1,10 @@
-#include <jetio/std/utility.hpp>
+#include <jio/std/utility.hpp>
 
 #include <string>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace jetio;
+using namespace jio;
 
 TEST_CASE("might_unused accepts any arguments", "[utility]")
 {

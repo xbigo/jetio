@@ -17,7 +17,7 @@
 // unless release() gave them up, which leaves it empty and without capacity.
 // See docs/design/fixed-vector.md.
 
-#include <jetio/std/contract.hpp>
+#include <jio/std/contract.hpp>
 
 #include <algorithm>
 #include <compare>
@@ -28,7 +28,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace jetio
+namespace jio
 {
     /// The plain represent: `size` elements at `ptr`, in memory for `capacity` elements.
     template <typename T> struct buffer_represent
@@ -332,4 +332,4 @@ namespace jetio
     };
 
     template <typename T> fixed_vector(buffer_represent<T>) -> fixed_vector<T>;
-} // namespace jetio
+} // namespace jio

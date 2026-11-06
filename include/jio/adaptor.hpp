@@ -8,7 +8,7 @@
 //   shift_device      hides the first `shift` bytes of a forward access device
 //   sub_device        a window [begin, end) of a random access device, with an own offset
 
-#include <jetio/iocore.hpp>
+#include <jio/iocore.hpp>
 
 #include <algorithm>
 #include <concepts>
@@ -18,16 +18,16 @@
 #include <type_traits>
 #include <utility>
 
-namespace jetio
+namespace jio
 {
     namespace detail
     {
         template <typename Device>
-        using read_view_of = std::remove_cvref_t<decltype(jetio::view_rd(
+        using read_view_of = std::remove_cvref_t<decltype(jio::view_rd(
             std::declval<Device &>(), std::declval<offset64_range>()))>;
 
         template <typename Device>
-        using write_view_of = std::remove_cvref_t<decltype(jetio::view_wr(
+        using write_view_of = std::remove_cvref_t<decltype(jio::view_wr(
             std::declval<Device &>(), std::declval<offset64_range>()))>;
 
         // The adaptors return an empty view when they report an error themselves.
@@ -89,7 +89,7 @@ namespace jetio
         ///         offset on an error
         offset64_t seek(offset64_t off, error_code_ptr ec = nullptr)
         {
-            const offset64_t result = jetio::seek(m_device, off, ec);
+            const offset64_t result = jio::seek(m_device, off, ec);
             if (has_error(ec))
                 return m_pos;
             return m_pos = result;
@@ -100,7 +100,7 @@ namespace jetio
         {
             if (!enter_(ec))
                 return buf.first(0);
-            const mutable_buffer result = jetio::read(m_device, buf, ec);
+            const mutable_buffer result = jio::read(m_device, buf, ec);
             m_pos += static_cast<offset64_t>(result.size());
             return result;
         }
@@ -110,7 +110,7 @@ namespace jetio
         {
             if (!enter_(ec))
                 return buf;
-            const const_buffer rest = jetio::write(m_device, buf, ec);
+            const const_buffer rest = jio::write(m_device, buf, ec);
             m_pos += static_cast<offset64_t>(buf.size() - rest.size());
             return rest;
         }
@@ -121,43 +121,43 @@ namespace jetio
         {
             if (!enter_(ec))
                 return false;
-            return jetio::is_eof(m_device, ec);
+            return jio::is_eof(m_device, ec);
         }
 
         size64_t size(error_code_ptr ec = nullptr) const
             requires sizer<Device &>
         {
-            return jetio::size(m_device, ec);
+            return jio::size(m_device, ec);
         }
 
         size64_t truncate(size64_t new_size, error_code_ptr ec = nullptr)
             requires truncater<Device &>
         {
-            return jetio::truncate(m_device, new_size, ec);
+            return jio::truncate(m_device, new_size, ec);
         }
 
         void sync(error_code_ptr ec = nullptr)
             requires syncer<Device &>
         {
-            jetio::sync(m_device, ec);
+            jio::sync(m_device, ec);
         }
 
         decltype(auto) view_rd(offset64_range h, error_code_ptr ec = nullptr)
             requires read_map<Device &>
         {
-            return jetio::view_rd(m_device, h, ec);
+            return jio::view_rd(m_device, h, ec);
         }
 
         decltype(auto) view_wr(offset64_range h, error_code_ptr ec = nullptr)
             requires write_map<Device &>
         {
-            return jetio::view_wr(m_device, h, ec);
+            return jio::view_wr(m_device, h, ec);
         }
 
     private:
         bool enter_(error_code_ptr ec)
         {
-            jetio::seek(m_device, m_pos, ec);
+            jio::seek(m_device, m_pos, ec);
             return !has_error(ec);
         }
 
@@ -192,7 +192,7 @@ namespace jetio
 
         offset64_t offset(error_code_ptr ec = nullptr) const
         {
-            return to_logical_(jetio::offset(m_device, ec));
+            return to_logical_(jio::offset(m_device, ec));
         }
 
         /// @return the offset afterwards, see seek
@@ -201,7 +201,7 @@ namespace jetio
             offset64_t target = 0;
             if (!detail::add_offset(off, m_shift, target))
                 return too_large_(ec);
-            return to_logical_(jetio::seek_forward(m_device, target, ec));
+            return to_logical_(jio::seek_forward(m_device, target, ec));
         }
 
         /// @return the offset afterwards: `off`, or the unchanged offset on an error
@@ -211,7 +211,7 @@ namespace jetio
             offset64_t target = 0;
             if (!detail::add_offset(off, m_shift, target))
                 return too_large_(ec);
-            return to_logical_(jetio::seek(m_device, target, ec));
+            return to_logical_(jio::seek(m_device, target, ec));
         }
 
         mutable_buffer read(mutable_buffer buf, error_code_ptr ec = nullptr)
@@ -219,7 +219,7 @@ namespace jetio
         {
             if (!enter_(ec))
                 return buf.first(0);
-            return jetio::read(m_device, buf, ec);
+            return jio::read(m_device, buf, ec);
         }
 
         const_buffer write(const_buffer buf, error_code_ptr ec = nullptr)
@@ -227,7 +227,7 @@ namespace jetio
         {
             if (!enter_(ec))
                 return buf;
-            return jetio::write(m_device, buf, ec);
+            return jio::write(m_device, buf, ec);
         }
 
         bool is_eof(error_code_ptr ec = nullptr)
@@ -235,14 +235,14 @@ namespace jetio
         {
             if (!enter_(ec))
                 return false;
-            return jetio::is_eof(m_device, ec);
+            return jio::is_eof(m_device, ec);
         }
 
         /// @return the size of the device less `shift` (0 if it is shorter), or unknown_size
         size64_t size(error_code_ptr ec = nullptr) const
             requires sizer<Device &>
         {
-            const size64_t device_size = jetio::size(m_device, ec);
+            const size64_t device_size = jio::size(m_device, ec);
             return device_size == unknown_size ? device_size : logical_size_(device_size);
         }
 
@@ -255,15 +255,15 @@ namespace jetio
             {
                 set_error_or_throw(ec, std::errc::value_too_large);
                 error_code ignored;
-                return logical_size_(jetio::size(m_device, &ignored));
+                return logical_size_(jio::size(m_device, &ignored));
             }
-            return logical_size_(jetio::truncate(m_device, target, ec));
+            return logical_size_(jio::truncate(m_device, target, ec));
         }
 
         void sync(error_code_ptr ec = nullptr)
             requires syncer<Device &>
         {
-            jetio::sync(m_device, ec);
+            jio::sync(m_device, ec);
         }
 
         /// Reports errc::value_too_large, and returns an empty view, if `h` with `shift` added
@@ -278,7 +278,7 @@ namespace jetio
                 set_error_or_throw(ec, std::errc::value_too_large);
                 return view{};
             }
-            return jetio::view_rd(m_device, shifted, ec);
+            return jio::view_rd(m_device, shifted, ec);
         }
 
         /// See view_rd.
@@ -292,7 +292,7 @@ namespace jetio
                 set_error_or_throw(ec, std::errc::value_too_large);
                 return view{};
             }
-            return jetio::view_wr(m_device, shifted, ec);
+            return jio::view_wr(m_device, shifted, ec);
         }
 
     private:
@@ -313,7 +313,7 @@ namespace jetio
         {
             set_error_or_throw(ec, std::errc::value_too_large);
             error_code ignored;
-            return to_logical_(jetio::offset(m_device, &ignored));
+            return to_logical_(jio::offset(m_device, &ignored));
         }
 
         bool shift_(offset64_range h, offset64_range &shifted) const noexcept
@@ -327,12 +327,12 @@ namespace jetio
         /// Moves the device forward to `shift` if it has not reached it.
         bool enter_(error_code_ptr ec)
         {
-            const offset64_t current = jetio::offset(m_device, ec);
+            const offset64_t current = jio::offset(m_device, ec);
             if (has_error(ec))
                 return false;
             if (current < m_shift)
             {
-                jetio::seek_forward(m_device, m_shift, ec);
+                jio::seek_forward(m_device, m_shift, ec);
                 return !has_error(ec);
             }
             return true;
@@ -403,7 +403,7 @@ namespace jetio
             }
             if (!enter_(ec))
                 return buf.first(0);
-            const mutable_buffer result = jetio::read(m_device, buf.first(count), ec);
+            const mutable_buffer result = jio::read(m_device, buf.first(count), ec);
             m_pos += static_cast<offset64_t>(result.size());
             return result;
         }
@@ -419,7 +419,7 @@ namespace jetio
             {
                 if (!enter_(ec))
                     return buf;
-                const const_buffer rest = jetio::write(m_device, buf.first(count), ec);
+                const const_buffer rest = jio::write(m_device, buf.first(count), ec);
                 written = count - rest.size();
                 m_pos += static_cast<offset64_t>(written);
                 if (has_error(ec))
@@ -448,7 +448,7 @@ namespace jetio
         void sync(error_code_ptr ec = nullptr)
             requires syncer<Device &>
         {
-            jetio::sync(m_device, ec);
+            jio::sync(m_device, ec);
         }
 
         /// Reports errc::invalid_argument, and returns an empty view, if `h` lies beyond the
@@ -463,7 +463,7 @@ namespace jetio
                 set_error_or_throw(ec, std::errc::invalid_argument);
                 return view{};
             }
-            return jetio::view_rd(m_device, mapped, ec);
+            return jio::view_rd(m_device, mapped, ec);
         }
 
         /// See view_rd.
@@ -477,7 +477,7 @@ namespace jetio
                 set_error_or_throw(ec, std::errc::invalid_argument);
                 return view{};
             }
-            return jetio::view_wr(m_device, mapped, ec);
+            return jio::view_wr(m_device, mapped, ec);
         }
 
     private:
@@ -494,7 +494,7 @@ namespace jetio
         /// @pre m_pos < size_()
         bool enter_(error_code_ptr ec)
         {
-            jetio::seek(m_device, m_section.begin + m_pos, ec);
+            jio::seek(m_device, m_section.begin + m_pos, ec);
             return !has_error(ec);
         }
 
@@ -515,4 +515,4 @@ namespace jetio
         offset64_range m_section{};
         offset64_t m_pos = 0;
     };
-} // namespace jetio
+} // namespace jio

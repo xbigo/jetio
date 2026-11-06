@@ -4,15 +4,15 @@
 //
 // A device is any type that provides some of the operations below, each as a member function or
 // as a free function found by argument dependent lookup (in the namespace of the device), so a
-// custom device need not be written in namespace jetio. A free function takes precedence, so a
+// custom device need not be written in namespace jio. A free function takes precedence, so a
 // type can be extended or overridden from outside; do not write an unconstrained function
 // template with the name of an operation, it would also take over types that wrap yours. The
-// operations of namespace jetio (read, write, ...) are customization point objects: they call
+// operations of namespace jio (read, write, ...) are customization point objects: they call
 // the member or the free function, add the default `ec` argument and check the protocol-level
 // contract. A concept (reader, writer, ...) tells whether a type provides the operation.
 //
 // Call them qualified or after a using declaration: being objects, they are not overloaded with
-// functions of the same name, so `using namespace jetio` conflicts with, for example, ::read of
+// functions of the same name, so `using namespace jio` conflicts with, for example, ::read of
 // <unistd.h> for unqualified calls.
 //
 //   [ sequence, forward_access, random_access ]   offset, seek_forward, seek
@@ -30,9 +30,9 @@
 //     operations document anything stronger. An operation that reports an error has made
 //     progress only where it says so.
 
-#include <jetio/error.hpp>
-#include <jetio/std/contract.hpp>
-#include <jetio/types.hpp>
+#include <jio/error.hpp>
+#include <jio/std/contract.hpp>
+#include <jio/types.hpp>
 
 #include <any>
 #include <concepts>
@@ -41,7 +41,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace jetio
+namespace jio
 {
     using mutable_buffer = std::span<std::byte>;
     using const_buffer = std::span<const std::byte>;
@@ -66,7 +66,7 @@ namespace jetio
     // How an operation reaches the device: a free function by ADL first, then the member. Each
     // operation has a namespace of its own in detail. The deleted function with no parameters in
     // it stops the ordinary lookup there: it is never viable, but being a function it leaves
-    // ADL on, which the object of the same name in namespace jetio would turn off.
+    // ADL on, which the object of the same name in namespace jio would turn off.
     // ---------------------------------------------------------------------------------------
 
     // ---------------------------------------------------------------------------------------
@@ -115,7 +115,7 @@ namespace jetio
 
     template <typename Device>
     concept reader = requires(Device &&device, mutable_buffer buf, error_code_ptr ec) {
-        { jetio::read(device, buf, ec) } -> std::convertible_to<mutable_buffer>;
+        { jio::read(device, buf, ec) } -> std::convertible_to<mutable_buffer>;
     };
 
     // ---------------------------------------------------------------------------------------
@@ -166,7 +166,7 @@ namespace jetio
 
     template <typename Device>
     concept writer = requires(Device &&device, const_buffer buf, error_code_ptr ec) {
-        { jetio::write(device, buf, ec) } -> std::convertible_to<const_buffer>;
+        { jio::write(device, buf, ec) } -> std::convertible_to<const_buffer>;
     };
 
     // ---------------------------------------------------------------------------------------
@@ -199,7 +199,7 @@ namespace jetio
     inline constexpr detail::sync_op::fn sync{};
 
     template <typename Device>
-    concept syncer = requires(Device &&device, error_code_ptr ec) { jetio::sync(device, ec); };
+    concept syncer = requires(Device &&device, error_code_ptr ec) { jio::sync(device, ec); };
 
     // ---------------------------------------------------------------------------------------
     // is_eof, is_eofer
@@ -236,7 +236,7 @@ namespace jetio
 
     template <typename Device>
     concept is_eofer = requires(Device &&device, error_code_ptr ec) {
-        { jetio::is_eof(device, ec) } -> std::convertible_to<bool>;
+        { jio::is_eof(device, ec) } -> std::convertible_to<bool>;
     };
 
     // ---------------------------------------------------------------------------------------
@@ -276,7 +276,7 @@ namespace jetio
 
     template <typename Device>
     concept truncater = requires(Device &&device, size64_t size, error_code_ptr ec) {
-        { jetio::truncate(device, size, ec) } -> std::convertible_to<size64_t>;
+        { jio::truncate(device, size, ec) } -> std::convertible_to<size64_t>;
     };
 
     // ---------------------------------------------------------------------------------------
@@ -314,7 +314,7 @@ namespace jetio
 
     template <typename Device>
     concept sizer = requires(Device &&device, error_code_ptr ec) {
-        { jetio::size(device, ec) } -> std::convertible_to<size64_t>;
+        { jio::size(device, ec) } -> std::convertible_to<size64_t>;
     };
 
     // ---------------------------------------------------------------------------------------
@@ -352,7 +352,7 @@ namespace jetio
 
     template <typename Device>
     concept sequence = requires(Device &&device, error_code_ptr ec) {
-        { jetio::offset(device, ec) } -> std::convertible_to<offset64_t>;
+        { jio::offset(device, ec) } -> std::convertible_to<offset64_t>;
     };
 
     // ---------------------------------------------------------------------------------------
@@ -396,7 +396,7 @@ namespace jetio
 
     template <typename Device>
     concept random_access = requires(Device &&device, offset64_t off, error_code_ptr ec) {
-        { jetio::seek(device, off, ec) } -> std::convertible_to<offset64_t>;
+        { jio::seek(device, off, ec) } -> std::convertible_to<offset64_t>;
     } && sequence<Device>;
 
     // ---------------------------------------------------------------------------------------
@@ -409,10 +409,10 @@ namespace jetio
         /// current offset cannot be obtained).
         template <typename Device> bool is_not_before_offset(Device &device, offset64_t off)
         {
-            if constexpr (requires(Device &d, error_code_ptr ec) { jetio::offset(d, ec); })
+            if constexpr (requires(Device &d, error_code_ptr ec) { jio::offset(d, ec); })
             {
                 error_code ec;
-                const offset64_t current = jetio::offset(device, &ec);
+                const offset64_t current = jio::offset(device, &ec);
                 return ec || off >= current;
             }
             else
@@ -435,7 +435,7 @@ namespace jetio
         };
         template <typename D>
         concept by_seek = requires(D &device, offset64_t off, error_code_ptr ec) {
-            { jetio::seek(device, off, ec) } -> std::convertible_to<offset64_t>;
+            { jio::seek(device, off, ec) } -> std::convertible_to<offset64_t>;
         };
         struct fn
         {
@@ -453,7 +453,7 @@ namespace jetio
                 else if constexpr (by_member<std::remove_reference_t<Device>>)
                     return device.seek_forward(off, ec);
                 else
-                    return jetio::seek(device, off, ec);
+                    return jio::seek(device, off, ec);
             }
         };
     } // namespace detail::seek_forward_op
@@ -467,7 +467,7 @@ namespace jetio
 
     template <typename Device>
     concept forward_access = requires(Device &&device, offset64_t off, error_code_ptr ec) {
-        { jetio::seek_forward(device, off, ec) } -> std::convertible_to<offset64_t>;
+        { jio::seek_forward(device, off, ec) } -> std::convertible_to<offset64_t>;
     } && sequence<Device>;
 
     // ---------------------------------------------------------------------------------------
@@ -509,11 +509,11 @@ namespace jetio
 
     template <typename View>
     concept read_view = requires(View &&view) {
-        { jetio::address(view) } -> std::convertible_to<const_buffer>;
+        { jio::address(view) } -> std::convertible_to<const_buffer>;
     };
     template <typename View>
     concept write_view = requires(View &&view) {
-        { jetio::address(view) } -> std::convertible_to<mutable_buffer>;
+        { jio::address(view) } -> std::convertible_to<mutable_buffer>;
     };
 
     // ---------------------------------------------------------------------------------------
@@ -548,7 +548,7 @@ namespace jetio
                         return device.view_rd(rng, ec);
                 }();
                 JIO_Ensures(has_error(ec) || rng.end == unknown_offset ||
-                            jetio::address(view).size() == range_size(rng));
+                            jio::address(view).size() == range_size(rng));
                 return view;
             }
         };
@@ -563,7 +563,7 @@ namespace jetio
 
     template <typename Device>
     concept read_map = requires(Device &&device, offset64_range rng, error_code_ptr ec) {
-        { jetio::view_rd(device, rng, ec) } -> read_view;
+        { jio::view_rd(device, rng, ec) } -> read_view;
     } && sizer<Device>;
 
     // ---------------------------------------------------------------------------------------
@@ -598,7 +598,7 @@ namespace jetio
                         return device.view_wr(rng, ec);
                 }();
                 JIO_Ensures(has_error(ec) || rng.end == unknown_offset ||
-                            jetio::address(view).size() == range_size(rng));
+                            jio::address(view).size() == range_size(rng));
                 return view;
             }
         };
@@ -613,7 +613,7 @@ namespace jetio
 
     template <typename Device>
     concept write_map = requires(Device &&device, offset64_range rng, error_code_ptr ec) {
-        { jetio::view_wr(device, rng, ec) } -> write_view;
+        { jio::view_wr(device, rng, ec) } -> write_view;
     } && sizer<Device>;
 
     // ---------------------------------------------------------------------------------------
@@ -685,7 +685,7 @@ namespace jetio
     template <typename Device>
     concept options =
         requires(Device &&device, int id, const std::any &optdata, error_code_ptr ec) {
-            { jetio::getopt(device, id, optdata, ec) } -> std::convertible_to<std::any>;
-            { jetio::setopt(device, id, optdata, optdata, ec) } -> std::convertible_to<std::any>;
+            { jio::getopt(device, id, optdata, ec) } -> std::convertible_to<std::any>;
+            { jio::setopt(device, id, optdata, optdata, ec) } -> std::convertible_to<std::any>;
         };
-} // namespace jetio
+} // namespace jio

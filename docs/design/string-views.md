@@ -1,6 +1,6 @@
 # String views with end guarantees
 
-`std::string_view` says nothing about the memory at its end. The views in `jetio/std/` add guarantees about it. They are language extensions, see [project structure](project-structure.md).
+`std::string_view` says nothing about the memory at its end. The views in `jio/std/` add guarantees about it. They are language extensions, see [project structure](project-structure.md).
 
 | Guarantee | Type | Concept | Meaning |
 | --- | --- | --- | --- |
@@ -9,7 +9,7 @@
 | determinable | `nd_string_view` | `nd_string_view_like` | `data()[size()]` can be read, so "is it `CharT()`?" can be answered |
 | none | `std::string_view` | | |
 
-Each guarantee is stronger than all that follow: terminated implies sentinel implies determinable implies a plain string view. The converse does not hold. All three are implemented, in `jetio/std/string_view.hpp`, together with the concept `string_view_family`, which is any of the three. A view is in the family because its base `string_view_ops` (a detail class) carries the marker `string_view_family_tag`; the concept looks for the marker, which is safe for incomplete and unrelated types.
+Each guarantee is stronger than all that follow: terminated implies sentinel implies determinable implies a plain string view. The converse does not hold. All three are implemented, in `jio/std/string_view.hpp`, together with the concept `string_view_family`, which is any of the three. A view is in the family because its base `string_view_ops` (a detail class) carries the marker `string_view_family_tag`; the concept looks for the marker, which is safe for incomplete and unrelated types.
 
 Characters before the end may be `CharT()` too, so `strlen(c_str())` can be smaller than `size()`.
 
@@ -73,7 +73,7 @@ All three views have the same two pointer constructors, so that they can be desi
 
 Shortening: `substr(view, pos)` and `rm_prefix(view, n)` keep the type, because the end does not move. `substr(view, pos, n)` and `rm_suffix(view, n)` return `shortened_type`: a terminated view gives a sentinel one. They build the result with `assume` (see above), which for nt looks at the terminator once more.
 
-The views are defined in the order nd, ns, nt, so that `shortened_type` of nt can name ns; there are no forward declarations, and the default template argument is on the definitions. Output is in `jetio/std/string_view_io.hpp`: `operator<<` as a non-friend function, and `std::format` support, which is heavy. The view is a `std::ranges::view`, a borrowed range and a contiguous range; the iterators are plain pointers and `data()` is the buffer address.
+The views are defined in the order nd, ns, nt, so that `shortened_type` of nt can name ns; there are no forward declarations, and the default template argument is on the definitions. Output is in `jio/std/string_view_io.hpp`: `operator<<` as a non-friend function, and `std::format` support, which is heavy. The view is a `std::ranges::view`, a borrowed range and a contiguous range; the iterators are plain pointers and `data()` is the buffer address.
 
 ## Differences from `std::string_view`
 
@@ -101,4 +101,4 @@ Related proposals: P3655 (`cstring_view`), P4220 (design goals), P1402, N3921.
 
 ## String literals
 
-`literal("text")` and `"text"_nt` (namespace `jetio::literals`, inline) give an `nt_string_view` at compile time. In the project a literal that is kept in a variable is written `constexpr auto s = literal("text");`, since `auto s = "text"` would be a pointer. Both end at the first terminator, as the pointer constructor does.
+`literal("text")` and `"text"_nt` (namespace `jio::literals`, inline) give an `nt_string_view` at compile time. In the project a literal that is kept in a variable is written `constexpr auto s = literal("text");`, since `auto s = "text"` would be a pointer. Both end at the first terminator, as the pointer constructor does.

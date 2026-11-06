@@ -19,7 +19,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace jetio
+namespace jio
 {
     template <typename T>
     concept character =
@@ -106,7 +106,7 @@ namespace jetio
     {
         template <typename T>
         concept has_c_str = requires(const T &t) {
-            { jetio::get_c_str(t) } -> c_str_pointer;
+            { jio::get_c_str(t) } -> c_str_pointer;
         };
 
         template <typename T> struct char_type_of
@@ -116,7 +116,7 @@ namespace jetio
         template <has_c_str T> struct char_type_of<T>
         {
             using type = std::remove_cv_t<
-                std::remove_pointer_t<decltype(jetio::get_c_str(std::declval<const T &>()))>>;
+                std::remove_pointer_t<decltype(jio::get_c_str(std::declval<const T &>()))>>;
         };
 
         template <typename T>
@@ -190,4 +190,4 @@ namespace jetio
     template <typename T>
     concept nt_string_view_like =
         ns_string_view_like<T> && (end_guarantee_v<T> >= end_guarantee::terminated);
-} // namespace jetio
+} // namespace jio

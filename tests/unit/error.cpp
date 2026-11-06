@@ -1,8 +1,8 @@
-#include <jetio/error.hpp>
+#include <jio/error.hpp>
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace jetio;
+using namespace jio;
 
 TEST_CASE("errors are reported through the error code", "[error]")
 {

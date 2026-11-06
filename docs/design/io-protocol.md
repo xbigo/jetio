@@ -28,6 +28,10 @@ The operations are objects, so they are not overloaded with functions of the sam
 - Seeking beyond the end is allowed. Reading there returns nothing; writing there extends the device if it can grow, and the gap reads as zero.
 - A device is always left valid and usable after an error. An operation has made progress after an error only where it says so.
 
+## Views and truncate
+
+After a successful `truncate` every view that the device gave before is invalid. A `truncate` that fails changes neither the size nor the views, and whether a device fails it while a view is alive is up to the implementation (a mapped file whose views hold the mapping can do that).
+
 ## Left out on purpose
 
 - Positional operations (`read_at`, `write_at`). A device is not thread safe and carries no cost for threads; concurrent use is made of adaptors that give each user a cooperating device (see `multiplex_device`) and take care of the synchronization.

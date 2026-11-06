@@ -306,6 +306,27 @@ TEST_CASE("a window cannot be resized", "[adaptor][sub]")
     CHECK(device.size() == 10);
 }
 
+TEST_CASE("a failed truncate of a window changes nothing", "[adaptor][sub]")
+{
+    auto device = device_of(10);
+    sub_device window(device, {2, 7});
+    seek(window, 3);
+    const auto view = view_rd(window, {0, 5});
+
+    error_code ec;
+    for (const size64_t wanted : {size64_t{0}, size64_t{4}, size64_t{6}, size64_t{100}})
+    {
+        CHECK(jio::truncate(window, wanted, &ec) == 5);
+        CHECK(ec == std::errc::invalid_argument);
+    }
+
+    CHECK(window.size() == 5);
+    CHECK(offset(window) == 3);
+    CHECK(device.size() == 10);
+    CHECK(std::vector<std::byte>(address(view).begin(), address(view).end()) == bytes(5, 2));
+    CHECK(read_n(device, 10) == bytes(10));
+}
+
 TEST_CASE("a window over a shorter device reads less", "[adaptor][sub]")
 {
     auto device = device_of(4);

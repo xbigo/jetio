@@ -434,6 +434,9 @@ namespace jio
             return buf.last(buf.size() - written);
         }
 
+        /// Fails for every size but the one of the window, which makes the only success a
+        /// change of nothing: after a failure the size, the data and the views of the window
+        /// are as they were.
         /// @return `new_size`, which must be the size of the window; reports
         ///         errc::invalid_argument otherwise, and returns the size
         size64_t truncate(size64_t new_size, error_code_ptr ec = nullptr)

@@ -11,6 +11,8 @@
 
 Each guarantee is stronger than all that follow: terminated implies sentinel implies determinable implies a plain string view. The converse does not hold. All three are implemented, in `jio/std/string_view.hpp`, together with the concept `string_view_family`, which is any of the three. A view is in the family because its base `string_view_ops` (a detail class) carries the marker `string_view_family_tag`; the concept looks for the marker, which is safe for incomplete and unrelated types.
 
+The owning counterpart is the [string](string.md), which converts to `nt_string_view`.
+
 Characters before the end may be `CharT()` too, so `strlen(c_str())` can be smaller than `size()`.
 
 The types are templates over the character type, but this project uses only `char`, UTF-8 included: strings inside the project are UTF-8 in `char`, and another encoding is converted only at the boundary of an integration. The shortcuts for the other character types (`nt_wstring_view`, `nt_u8string_view`, ...) are at the end of the header for whoever needs them; the project does not use them.
@@ -22,7 +24,7 @@ The types are templates over the character type, but this project uses only `cha
 
 ## Guarantee of a type
 
-`end_guarantee_of<T>` is an ordered enum, `none < determinable < sentinel < terminated`. The default is the static member `guarantee` of the type (the three views have it), else `terminated` for a type with a `c_str()` (or an ADL `get_c_str`) that converts to `std::basic_string_view`; specialize it to state the guarantee of another type or to withdraw it. The concepts are the conversion to `std::basic_string_view` plus the guarantee, and each names the weaker one, so overloads pick the most specific.
+`end_guarantee_of<T>` is an ordered enum, `none < determinable < sentinel < terminated`. The default is the static member `guarantee` of the type (the three views have it), else `terminated` for a type with a `c_str()` (or an ADL `get_c_str`) that converts to `std::basic_string_view`; specialize it to state the guarantee of another type or to withdraw it. The concepts are the conversion to `std::basic_string_view` (of a character type: a view of `std::byte` is not a type, and libc++ refuses it) plus the guarantee, and each names the weaker one, so overloads pick the most specific.
 
 `get_c_str(x)` is a customization point object: member `c_str()`, or `get_c_str(x)` found by ADL. The size always comes from the conversion to a string view; `data()` is not trusted to be terminated. For sizes in general, `std::ranges::size` is the standard extension point (`std::ranges::data` has none).
 

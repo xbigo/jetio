@@ -170,12 +170,23 @@ namespace jio
     template <typename T>
     inline constexpr end_guarantee end_guarantee_v = end_guarantee_of<std::remove_cvref_t<T>>;
 
-    /// Converts to std::basic_string_view of its own character type. The base of the concepts
-    /// below, which add the guarantee as a refinement.
+    /// Converts to std::basic_string_view of its own character type, which is a character (not
+    /// std::byte, say: a view of that is not a type). The base of the concepts below, which add
+    /// the guarantee as a refinement.
     template <typename T>
     concept string_view_convertible =
-        detail::has_char_type<std::remove_cvref_t<T>> &&
+        detail::has_char_type<std::remove_cvref_t<T>> && character<char_type_t<T>> &&
         std::convertible_to<const std::remove_cvref_t<T> &, std::basic_string_view<char_type_t<T>>>;
+
+    /// What a std::basic_string_view of its character type can be made from, implicitly or
+    /// explicitly (std::span<const char>, std::vector<char>, ...), but a pointer or an array: a
+    /// range of characters says how many there are, a pointer or an array does not say whether
+    /// the terminator counts. For functions that only read the characters.
+    template <typename T>
+    concept string_view_source = detail::has_char_type<std::remove_cvref_t<T>> &&
+                                 character<char_type_t<T>> && !std::is_pointer_v<std::decay_t<T>> &&
+                                 std::constructible_from<std::basic_string_view<char_type_t<T>>,
+                                                         const std::remove_cvref_t<T> &>;
 
     // Each concept names the weaker one, so nt subsumes ns subsumes nd subsumes the base, and
     // overloads on them pick the most specific.

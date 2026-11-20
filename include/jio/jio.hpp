@@ -12,6 +12,7 @@
 #include <jio/pseudo.hpp>
 #include <jio/std/contract.hpp>
 #include <jio/std/fixed_vector.hpp>
+#include <jio/std/string.hpp>
 #include <jio/std/string_view.hpp>
 #include <jio/std/string_view_concepts.hpp>
 #include <jio/std/utility.hpp>

@@ -5,8 +5,10 @@
 #include <jio/bad_device.hpp>
 #include <jio/cache_view.hpp>
 #include <jio/error.hpp>
+#include <jio/file_stream.hpp>
 #include <jio/iocore.hpp>
 #include <jio/memory.hpp>
+#include <jio/path.hpp>
 #include <jio/pseudo.hpp>
 #include <jio/std/contract.hpp>
 #include <jio/std/fixed_vector.hpp>

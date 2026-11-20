@@ -13,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE_DIRS = ("include", "src", "tests", "tools")
-CPP_SUFFIXES = {".hpp", ".cpp", ".h", ".cc", ".ixx", ".cppm"}
+CPP_SUFFIXES = {".hpp", ".ipp", ".cpp", ".h", ".cc", ".ixx", ".cppm"}
 
 # The Docker build environment: the image is made from these files and named after their content.
 IMAGE_FILES = ("tools/docker/Dockerfile", "tools/setup/linux-apt.sh")

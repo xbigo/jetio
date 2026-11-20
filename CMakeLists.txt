@@ -43,28 +43,56 @@ include(JetioDevOptions)
 include(JetioStaticAnalysis)
 
 # ---------------------------------------------------------------------------
-# The library (header-only for now)
+# The library: jetio::jetio is compiled (static, or shared with BUILD_SHARED_LIBS), and
+# jetio::jetio_header_only is the same library with its implementation included from the
+# headers (JIO_HEADER_ONLY). Link one of them, never both: the two do not share definitions.
 # ---------------------------------------------------------------------------
 # The headers are found by scanning include/; CONFIGURE_DEPENDS re-runs CMake when one is added
 # or removed. To leave a file out, list_filter() the variable here.
 file(GLOB_RECURSE JETIO_HEADERS LIST_DIRECTORIES false CONFIGURE_DEPENDS
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp)
-add_library(jetio INTERFACE)
-add_library(jetio::jetio ALIAS jetio)
-target_sources(jetio INTERFACE
-    FILE_SET HEADERS
-    BASE_DIRS include
-    FILES
-        ${JETIO_HEADERS})
-target_compile_features(jetio INTERFACE cxx_std_23)
-if(NOT JETIO_CONTRACT_LEVEL STREQUAL "")
-    target_compile_definitions(jetio INTERFACE JIO_CONTRACT_LEVEL=${JETIO_CONTRACT_LEVEL})
-endif()
-# Every public header must compile on its own.
-set_target_properties(jetio PROPERTIES VERIFY_INTERFACE_HEADER_SETS ON)
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/*.ipp)
+file(GLOB_RECURSE JETIO_SOURCES LIST_DIRECTORIES false CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 
-# Future compiled part: add src/CMakeLists.txt and target_link_libraries(jetio INTERFACE ...)
-# once the first translation unit lands in src/.
+add_library(jetio ${JETIO_SOURCES})
+add_library(jetio::jetio ALIAS jetio)
+add_library(jetio_header_only INTERFACE)
+add_library(jetio::jetio_header_only ALIAS jetio_header_only)
+target_compile_definitions(jetio_header_only INTERFACE JIO_HEADER_ONLY)
+
+foreach(lib jetio jetio_header_only)
+    # PUBLIC on the compiled library, INTERFACE on the header-only one
+    get_target_property(type ${lib} TYPE)
+    set(scope PUBLIC)
+    if(type STREQUAL "INTERFACE_LIBRARY")
+        set(scope INTERFACE)
+    endif()
+    target_sources(${lib} ${scope}
+        FILE_SET HEADERS
+        BASE_DIRS include
+        FILES
+            ${JETIO_HEADERS})
+    target_compile_features(${lib} ${scope} cxx_std_23)
+    if(NOT JETIO_CONTRACT_LEVEL STREQUAL "")
+        target_compile_definitions(${lib} ${scope} JIO_CONTRACT_LEVEL=${JETIO_CONTRACT_LEVEL})
+    endif()
+    # 64 bit file offsets on 32 bit POSIX systems
+    target_compile_definitions(${lib} ${scope} $<$<NOT:$<PLATFORM_ID:Windows>>:_FILE_OFFSET_BITS=64>)
+    # Every public header must compile on its own.
+    set_target_properties(${lib} PROPERTIES VERIFY_INTERFACE_HEADER_SETS ON)
+endforeach()
+target_link_libraries(jetio PRIVATE $<BUILD_INTERFACE:jetio::dev_options>)
+set_target_properties(jetio PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+jetio_enable_static_analysis(jetio)
+
+# The target the tests and tools link
+option(JETIO_HEADER_ONLY "Build the tests and tools against the header-only library" OFF)
+if(JETIO_HEADER_ONLY)
+    add_library(jetio_used ALIAS jetio_header_only)
+else()
+    add_library(jetio_used ALIAS jetio)
+endif()
 
 # ---------------------------------------------------------------------------
 # Tests, tools, install

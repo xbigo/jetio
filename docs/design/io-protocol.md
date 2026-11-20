@@ -35,7 +35,7 @@ After a successful `truncate` every view that the device gave before is invalid.
 ## Left out on purpose
 
 - Positional operations (`read_at`, `write_at`). A device is not thread safe and carries no cost for threads; concurrent use is made of adaptors that give each user a cooperating device (see `multiplex_device`) and take care of the synchronization.
-- Buffering. Devices have no buffer, so there is nothing to flush; a buffer, if needed, is an adaptor, which composes with the other adaptors and keeps the devices simple.
+- Buffering. The protocol does not care whether a device buffers; it has no operation for it, and `sync` is the only one that speaks of durability. The devices of the library have no buffer; a buffer, if needed, is an adaptor, which composes with the other adaptors and keeps the devices simple.
 
 ## Protocol-level contracts
 
@@ -94,4 +94,4 @@ The views of `shift_device` and `sub_device` are the views of the wrapped device
 
 ## Not yet migrated
 
-Nothing of ape is left to migrate. Not yet written: a type erased device (like iref of nix), the buffering and multi thread adaptors (`buffer_dev`, `mt_reader`, `mt_multiplex_reader`), `copy`, and a file device.
+Nothing of ape is left to migrate. Not yet written: a type erased device (like iref of nix), the buffering and multi thread adaptors (`buffer_dev`, `mt_reader`, `mt_multiplex_reader`), `copy`, and the file devices other than the POSIX streams (see [file devices](file-devices.md)).

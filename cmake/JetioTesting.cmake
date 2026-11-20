@@ -8,7 +8,7 @@
 
 function(jetio_add_test_executable target group)
     add_executable(${target} ${ARGN})
-    target_link_libraries(${target} PRIVATE jetio::jetio jetio::dev_options)
+    target_link_libraries(${target} PRIVATE jetio_used jetio::dev_options)
     if(NOT group STREQUAL "unit" AND NOT JETIO_BENCH_AND_FUZZ_IN_ALL)
         set_target_properties(${target} PROPERTIES EXCLUDE_FROM_ALL TRUE)
     endif()

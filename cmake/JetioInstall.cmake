@@ -3,7 +3,7 @@ include(CMakePackageConfigHelpers)
 
 set(_jetio_cmake_dir "${CMAKE_INSTALL_LIBDIR}/cmake/jetio")
 
-install(TARGETS jetio
+install(TARGETS jetio jetio_header_only
     EXPORT jetioTargets
     FILE_SET HEADERS)
 

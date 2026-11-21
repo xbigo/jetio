@@ -15,15 +15,17 @@
 //
 // The cases `string_baseline_*` measure the parts, for the same total lengths: the loop alone, a
 // copy of a jio::string (a block is shared: an atomic increment and decrement) and of a
-// std::string, a jio::string made from a view (one allocation and a copy), and the allocator.
+// std::string, an empty string of both kinds, a jio::string made from a view (one allocation and a
+// copy), and the allocator, alone and through the memory resource.
 //
-//   jetio_benchmarks --benchmark_filter='^string_' --benchmark_min_time=0.1s
+//   jetio_benchmarks --benchmark_filter='^string_'
 #include <jio/jio.hpp>
 
 #include <benchmark/benchmark.h>
 
 #include <cstddef>
 #include <cstdlib>
+#include <memory_resource>
 #include <new>
 #include <string>
 #include <string_view>
@@ -100,12 +102,17 @@ namespace
     };
 
     // The allocations are counted from `before`, the count at the start of the loop.
+    void count_allocations(benchmark::State &state, std::size_t before)
+    {
+        state.counters["allocs"] = benchmark::Counter(static_cast<double>(allocations - before),
+                                                      benchmark::Counter::kAvgIterations);
+    }
+
     void count(benchmark::State &state, std::size_t before)
     {
         state.SetBytesProcessed(state.iterations() * 3 * state.range(0));
         state.SetLabel(std::to_string(3 * state.range(0)) + " chars");
-        state.counters["allocs"] = benchmark::Counter(static_cast<double>(allocations - before),
-                                                      benchmark::Counter::kAvgIterations);
+        count_allocations(state, before);
     }
 } // namespace
 
@@ -228,6 +235,29 @@ static void string_baseline_from_view(benchmark::State &state)
     count(state, before);
 }
 
+// The empty strings: what making and destroying one costs, whatever the length.
+static void string_baseline_empty(benchmark::State &state)
+{
+    const std::size_t before = allocations;
+    for (auto _ : state)
+    {
+        jio::string t;
+        benchmark::DoNotOptimize(t);
+    }
+    count_allocations(state, before);
+}
+
+static void string_baseline_empty_std_string(benchmark::State &state)
+{
+    const std::size_t before = allocations;
+    for (auto _ : state)
+    {
+        std::string t;
+        benchmark::DoNotOptimize(t);
+    }
+    count_allocations(state, before);
+}
+
 // What a block of the string costs from the allocator alone: the size of the characters and the
 // header of the block.
 static void string_baseline_allocator(benchmark::State &state)
@@ -243,8 +273,27 @@ static void string_baseline_allocator(benchmark::State &state)
     count(state, before);
 }
 
+// The block of the string takes its memory from the default resource of std::pmr: a virtual call
+// to allocate, another to deallocate.
+static void string_baseline_resource(benchmark::State &state)
+{
+    const std::size_t size = 3 * static_cast<std::size_t>(state.range(0)) + 1 + 16;
+    std::pmr::memory_resource &mr = jio::default_resource();
+    const std::size_t before = allocations;
+    for (auto _ : state)
+    {
+        void *p = mr.allocate(size, 8);
+        benchmark::DoNotOptimize(p);
+        mr.deallocate(p, size, 8);
+    }
+    count(state, before);
+}
+
 BENCHMARK(string_baseline_loop)->Apply(lengths);
+BENCHMARK(string_baseline_empty);
+BENCHMARK(string_baseline_empty_std_string);
 BENCHMARK(string_baseline_copy)->Apply(lengths);
 BENCHMARK(string_baseline_copy_std_string)->Apply(lengths);
 BENCHMARK(string_baseline_from_view)->Apply(lengths);
 BENCHMARK(string_baseline_allocator)->Apply(lengths);
+BENCHMARK(string_baseline_resource)->Apply(lengths);

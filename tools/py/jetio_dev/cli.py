@@ -124,7 +124,13 @@ def cmd_check(args: argparse.Namespace) -> int:
 
 
 def cmd_bench(args: argparse.Namespace) -> int:
-    return run("ctest", "--preset", f"{args.preset}-bench", "--verbose", *args.extra)
+    """Measure: each case runs for 100 ms. The extra arguments, after `--`, go to the
+    executable and come later, so a --benchmark_min_time of them wins. (The ctest preset
+    <preset>-bench is the short smoke run, see `test`.)"""
+    exe = build_dir(args.preset) / "tests" / "bench" / "jetio_benchmarks"
+    if not exe.exists():
+        raise SystemExit(f"{exe} does not exist: build a release preset first (build -p {args.preset})")
+    return run(exe, "--benchmark_min_time=0.1s", *args.extra)
 
 
 def cmd_format(args: argparse.Namespace) -> int:
@@ -179,7 +185,7 @@ def build_parser() -> argparse.ArgumentParser:
     build.add_argument("-t", "--target", help="build only this target")
     add("test", cmd_test, "ctest --preset")
     add("check", cmd_check, "configure + build + unit tests with the time limit")
-    add("bench", cmd_bench, "run the micro-benchmarks (release presets)")
+    add("bench", cmd_bench, "measure with the micro-benchmarks, 100 ms each (release presets)")
     add("clean", cmd_clean, "remove the build directory of a preset")
     image = add("image", cmd_image, "make the Docker image if needed and print its name", preset=False)
     image.add_argument("--name", action="store_true", help="only print the name")

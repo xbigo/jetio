@@ -39,10 +39,12 @@ Build trees go to `build/<preset>` (`build/docker/<preset>` in the container). P
 
 ```sh
 tools/jetio-dev [--no-docker] configure|build|test|check -p <preset>
-tools/jetio-dev bench -p linux-x64-gcc-release
+tools/jetio-dev bench -p linux-x64-gcc-release [-- --benchmark_filter='^string_']
 tools/jetio-dev format [--check]
 tools/jetio-dev clean -p <preset>
 ```
+
+`bench` measures: each case of the benchmarks runs for 100 ms (the arguments after `--` go to `jetio_benchmarks`). The short smoke run of the benchmarks, which is what CI does, is the ctest preset `<preset>-bench`: `tools/jetio-dev test -p linux-x64-gcc-release-bench`.
 
 Useful CMake targets: `jetio_unit`, `jetio_bench`, `jetio_fuzz` (build one kind of test), `jetio_check` (build and run unit tests, fail if they take too long, see [testing](design/testing.md)).
 

@@ -15,4 +15,5 @@ Docs record the current state and the decisions behind it, not how we got there.
   - [File devices](design/file-devices.md)
   - [String views with end guarantees](design/string-views.md)
   - [String](design/string.md)
+  - [String algorithms](design/string-algo.md)
   - [fixed_vector](design/fixed-vector.md)

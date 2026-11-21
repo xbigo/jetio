@@ -16,5 +16,6 @@
 #include <jio/std/string_view.hpp>
 #include <jio/std/string_view_concepts.hpp>
 #include <jio/std/utility.hpp>
+#include <jio/string_algo.hpp>
 #include <jio/types.hpp>
 #include <jio/version.hpp>

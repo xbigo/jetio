@@ -29,6 +29,8 @@ The runtime decides the ABI of the binaries, and the version of the headers deci
 | native, `clang-*` and sanitizers | libstdc++ of GCC 16, as above | as above | as above |
 | native, `clang-libcxx-*` | libc++ 22.1.8 (`_LIBCPP_VERSION` 220108) and libc++abi 22.1.8 | `_LIBCPP_ABI_VERSION` 1, namespace `std::__1` | glibc 2.43-5, libgcc_s 16.2.0-3 |
 
+The `clang-libcxx-*` presets compile with `clang++-22`: until 2026-11-21 the order of `inherits` made them use `clang++` (Clang 21.1.8) with the headers of libc++ 22, because the first of the inherited presets wins; the times of those two rows below were measured that way and were not measured again.
+
 The two C++ libraries are never mixed: a preset builds the tests and the fetched dependencies with its own library.
 
 ## Linux x64, measured

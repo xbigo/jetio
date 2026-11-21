@@ -132,8 +132,8 @@
             "displayName": "Linux x64, Clang 22, libc++, Debug",
             "inherits": [
                 "linux-x64",
-                "clang",
                 "libcxx",
+                "clang",
                 "debug"
             ]
         },
@@ -142,8 +142,8 @@
             "displayName": "Linux x64, Clang 22, libc++, Release (with debug symbols)",
             "inherits": [
                 "linux-x64",
-                "clang",
                 "libcxx",
+                "clang",
                 "release"
             ]
         },

@@ -70,17 +70,10 @@ namespace jio
     };
 
     template <typename CharT, typename Traits = std::char_traits<CharT>> class basic_string;
-    template <typename L, typename R> class concator;
 
     namespace detail
     {
         struct string_access;
-        struct concat_access
-        {
-            /// Writes the pieces of the concator to `out`, which has room for its size.
-            template <typename L, typename R, typename CharT>
-            static CharT *copy(const concator<L, R> &c, CharT *out) noexcept;
-        };
 
         /// Bytes in front of the pointer of a string that is larger than 16 bytes.
         template <std::size_t K> struct padding
@@ -90,29 +83,6 @@ namespace jio
         template <> struct padding<0>
         {
         };
-
-        template <typename T> struct is_basic_string : std::false_type
-        {
-        };
-        template <typename C, typename T>
-        struct is_basic_string<basic_string<C, T>> : std::true_type
-        {
-        };
-        template <typename T> struct is_concator : std::false_type
-        {
-        };
-        template <typename L, typename R> struct is_concator<concator<L, R>> : std::true_type
-        {
-        };
-
-        /// What operator+ concatenates: anything that converts to a string view, but a pointer or
-        /// an array. Only the characters are read, so the end of a piece need not be known.
-        template <typename T>
-        concept concat_operand = string_view_source<T> || is_concator<T>::value;
-
-        /// What gives operator+ the right to exist: one operand of ours.
-        template <typename T>
-        concept ours = string_view_family<T> || is_basic_string<T>::value || is_concator<T>::value;
 
         /// @throws std::length_error if the sum does not fit in std::size_t
         template <typename... Sizes> std::size_t checked_sum(Sizes... sizes)
@@ -187,6 +157,19 @@ namespace jio
             JIO_Expects_critical(text.size() <= max_size());
         }
 
+        /// A copy of the C string `text`, up to its terminator (a char buffer is one: it is taken
+        /// to be terminated).
+        /// @pre text != nullptr (critical), and a CharT() follows the characters
+        /// @throws std::length_error if the string is longer than max_size(), std::bad_alloc
+        explicit basic_string(const CharT *text,
+                              std::pmr::memory_resource &mr = detail::default_resource())
+            : basic_string(copy_of_(string_view_type(text, length_(text)), mr))
+        {
+            JIO_Expects_critical(text != nullptr);
+        }
+        basic_string(std::nullptr_t,
+                     std::pmr::memory_resource & = detail::default_resource()) = delete;
+
         /// A copy of the characters of `text`, tiny if they are few, else in a block from `mr`.
         /// @throws std::length_error if text.size() > max_size(), std::bad_alloc
         template <typename U>
@@ -196,17 +179,6 @@ namespace jio
         explicit basic_string(const U &text,
                               std::pmr::memory_resource &mr = detail::default_resource())
             : basic_string(copy_of_(string_view_type(text), mr))
-        {
-        }
-
-        /// The characters of a concatenation, see concator.
-        /// @throws std::length_error, std::bad_alloc
-        template <typename L, typename R>
-            requires std::same_as<typename concator<L, R>::value_type, CharT>
-        explicit basic_string(const concator<L, R> &text,
-                              std::pmr::memory_resource &mr = detail::default_resource())
-            : basic_string(build_(mr, text.size(), [&](CharT *out) noexcept
-                                  { return detail::concat_access::copy(text, out); }))
         {
         }
 
@@ -231,6 +203,18 @@ namespace jio
         {
             basic_string moved(std::move(other));
             swap(moved);
+            return *this;
+        }
+
+        /// Replaces the value with a copy of the C string `text`, see the constructor; a block
+        /// comes from the default resource. A template, so that `= {}` is not a null pointer.
+        /// @pre text != nullptr (critical), and a CharT() follows the characters
+        template <typename Pointer>
+            requires(std::is_pointer_v<Pointer> && std::convertible_to<Pointer, const CharT *>)
+        basic_string &operator=(Pointer text)
+        {
+            basic_string copy{static_cast<const CharT *>(text)};
+            swap(copy);
             return *this;
         }
 
@@ -426,6 +410,12 @@ namespace jio
             return s;
         }
 
+        static size_type length_(const CharT *text) noexcept
+        {
+            JIO_Expects_critical(text != nullptr);
+            return Traits::length(text);
+        }
+
         static basic_string copy_of_(string_view_type text, std::pmr::memory_resource &mr)
         {
             return build_(mr, text.size(), [&](CharT *out) noexcept
@@ -443,7 +433,8 @@ namespace jio
 
     namespace detail
     {
-        /// Lets the functions that make strings from pieces use the private build_.
+        /// The only friend of basic_string besides itself: the functions that make a string from
+        /// pieces use the private build_ through it, so basic_string knows none of them.
         struct string_access
         {
             template <typename CharT, typename Traits, typename Fill>
@@ -454,20 +445,65 @@ namespace jio
             }
         };
 
-        template <typename T> using operand_char_t = char_type_t<T>;
+        /// The one place that copies pieces into a string, for concat_in, join and concator.
+        /// `enumerate(visit)` calls visit(std::basic_string_view<CharT>) for each piece in order;
+        /// it is called twice, once to add up the sizes and once to copy.
+        /// @throws std::length_error if the total is too long, std::bad_alloc
+        template <typename CharT, typename Traits, typename Enumerate>
+        basic_string<CharT, Traits> build_from_pieces(std::pmr::memory_resource &mr,
+                                                      const Enumerate &enumerate)
+        {
+            std::size_t n = 0;
+            enumerate([&](std::basic_string_view<CharT> piece)
+                      { n = checked_sum(n, piece.size()); });
+            return string_access::build<CharT, Traits>(
+                mr, n,
+                [&](CharT *out) noexcept
+                {
+                    enumerate([&](std::basic_string_view<CharT> piece) noexcept
+                              { out = std::copy_n(piece.data(), piece.size(), out); });
+                    return out;
+                });
+        }
 
-        template <typename T, typename CharT>
-        CharT *copy_operand(const T &part, CharT *out) noexcept;
+        template <typename T> using operand_char_t = char_type_t<T>;
     } // namespace detail
 
     // --- concatenation --------------------------------------------------------------------
+
+    template <typename L, typename R> class concator;
+
+    namespace detail
+    {
+        template <typename T> struct is_concator : std::false_type
+        {
+        };
+        template <typename L, typename R> struct is_concator<concator<L, R>> : std::true_type
+        {
+        };
+        template <typename T> struct is_basic_string : std::false_type
+        {
+        };
+        template <typename C, typename T>
+        struct is_basic_string<basic_string<C, T>> : std::true_type
+        {
+        };
+
+        /// What operator+ concatenates: anything that converts to a string view, but a pointer or
+        /// an array. Only the characters are read, so the end of a piece need not be known.
+        template <typename T>
+        concept concat_operand = string_view_source<T> || is_concator<T>::value;
+
+        /// What gives operator+ the right to exist: one operand of ours.
+        template <typename T>
+        concept ours = string_view_family<T> || is_basic_string<T>::value || is_concator<T>::value;
+    } // namespace detail
 
     /// What `a + b` is: the pieces and their total size, not a string. It converts to a string
     /// only as an rvalue, so `string s = a + b + c;` allocates once and copies each piece once,
     /// and `auto x = a + b; string s = x;` does not compile.
     /// A concator refers to its operands: it must not outlive the full expression that made it,
-    /// so never keep one in a variable. (The explicit conversion, with another resource, takes
-    /// a concator as well.)
+    /// so never keep one in a variable.
     template <typename L, typename R> class concator
     {
     public:
@@ -476,10 +512,19 @@ namespace jio
         /// @return the size of the string it converts to
         std::size_t size() const noexcept { return m_size; }
 
-        operator basic_string<value_type>() const && { return basic_string<value_type>(*this); }
+        /// The string of the pieces, with the storage of a shared one from `mr`.
+        /// @throws std::length_error if it would be longer than max_size(), std::bad_alloc
+        basic_string<value_type>
+        to_string(std::pmr::memory_resource &mr = detail::default_resource()) const
+        {
+            return detail::build_from_pieces<value_type, std::char_traits<value_type>>(
+                mr, [&](const auto &visit) { visit_pieces_(visit); });
+        }
+
+        operator basic_string<value_type>() const && { return to_string(); }
 
     private:
-        friend struct detail::concat_access;
+        template <typename, typename> friend class concator;
         template <typename L2, typename R2>
             requires(detail::concat_operand<L2> && detail::concat_operand<R2> &&
                      (detail::ours<L2> || detail::ours<R2>) &&
@@ -500,33 +545,25 @@ namespace jio
                 return std::basic_string_view<value_type>(part).size();
         }
 
+        template <typename Visit> void visit_pieces_(const Visit &visit) const
+        {
+            visit_operand_(m_left, visit);
+            visit_operand_(m_right, visit);
+        }
+
+        template <typename T, typename Visit>
+        static void visit_operand_(const T &part, const Visit &visit)
+        {
+            if constexpr (detail::is_concator<T>::value)
+                part.visit_pieces_(visit);
+            else
+                visit(std::basic_string_view<value_type>(part));
+        }
+
         const L &m_left;
         const R &m_right;
         std::size_t m_size;
     };
-
-    namespace detail
-    {
-        template <typename L, typename R, typename CharT>
-        CharT *concat_access::copy(const concator<L, R> &c, CharT *out) noexcept
-        {
-            return copy_operand(c.m_right, copy_operand(c.m_left, out));
-        }
-
-        template <typename T, typename CharT>
-        CharT *copy_operand(const T &part, CharT *out) noexcept
-        {
-            if constexpr (is_concator<T>::value)
-            {
-                return concat_access::copy(part, out);
-            }
-            else
-            {
-                const std::basic_string_view<CharT> text(part);
-                return std::copy_n(text.data(), text.size(), out);
-            }
-        }
-    } // namespace detail
 
     /// The pieces of the concatenation, to be converted at once. At least one operand is a
     /// string, a string view of ours or a concator; all have the same character type.
@@ -549,16 +586,12 @@ namespace jio
         using char_type = char_type_t<First>;
         const std::basic_string_view<char_type> views[] = {
             std::basic_string_view<char_type>(first), std::basic_string_view<char_type>(rest)...};
-        std::size_t n = 0;
-        for (const auto &view : views)
-            n = detail::checked_sum(n, view.size());
-        return detail::string_access::build<char_type, std::char_traits<char_type>>(
-            mr, n,
-            [&](char_type *out) noexcept
+        return detail::build_from_pieces<char_type, std::char_traits<char_type>>(
+            mr,
+            [&](const auto &visit)
             {
                 for (const auto &view : views)
-                    out = std::copy_n(view.data(), view.size(), out);
-                return out;
+                    visit(view);
             });
     }
 
@@ -583,28 +616,18 @@ namespace jio
     {
         using char_type = char_type_t<Separator>;
         const std::basic_string_view<char_type> glue(separator);
-        std::size_t n = 0;
-        bool first = true;
-        for (const auto &piece : pieces)
-        {
-            n = detail::checked_sum(n, first ? 0 : glue.size(),
-                                    std::basic_string_view<char_type>(piece).size());
-            first = false;
-        }
-        return detail::string_access::build<char_type, std::char_traits<char_type>>(
-            mr, n,
-            [&](char_type *out) noexcept
+        return detail::build_from_pieces<char_type, std::char_traits<char_type>>(
+            mr,
+            [&](const auto &visit)
             {
-                bool is_first = true;
+                bool first = true;
                 for (const auto &piece : pieces)
                 {
-                    if (!is_first)
-                        out = std::copy_n(glue.data(), glue.size(), out);
-                    is_first = false;
-                    const std::basic_string_view<char_type> view(piece);
-                    out = std::copy_n(view.data(), view.size(), out);
+                    if (!first)
+                        visit(glue);
+                    first = false;
+                    visit(std::basic_string_view<char_type>(piece));
                 }
-                return out;
             });
     }
 

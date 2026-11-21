@@ -73,9 +73,7 @@ TEST_CASE("a string is string_object_size bytes and ends with a terminator", "[s
     static_assert(nt_string_view_like<string>);
     static_assert(std::is_nothrow_move_constructible_v<string> &&
                   std::is_nothrow_copy_constructible_v<string>);
-    static_assert(!std::is_convertible_v<const char *, string> &&
-                  !std::is_constructible_v<string, const char *>);
-    static_assert(!std::is_constructible_v<string, const char (&)[4]>);
+    static_assert(!std::is_convertible_v<const char *, string>); // only explicitly
 
     string s;
     CHECK(s.empty());
@@ -318,8 +316,8 @@ TEST_CASE("a sum of strings is a concator that converts once", "[string]")
     const string t = a + b;
     CHECK(t == long_name + "/file");
 
-    // another resource: the explicit conversion
-    const string u(a + b + "xyz"_nt, mr);
+    // another resource: the named conversion
+    const string u = (a + b + "xyz"_nt).to_string(mr);
     CHECK(u == long_name + "/filexyz");
     CHECK(mr.allocations == 1);
 
@@ -459,4 +457,29 @@ TEST_CASE("the longest string is one that a std::ptrdiff_t can measure", "[strin
     // the block is that and a little more, which must not wrap
     const std::string_view too_long(pool_text, string::max_size() + 1);
     CHECK_THROWS_AS(string(too_long), std::length_error);
+}
+
+TEST_CASE("a C string is copied up to its terminator", "[string]")
+{
+    const char *text = "a string that is too long to be tiny, whatever string_object_size is";
+    const string s(text);
+    CHECK(s.layout() == string_layout::shared);
+    CHECK(s == std::string_view(text));
+    CHECK(s.data() != text);
+
+    // an array is taken as a C string too: the characters up to the first terminator
+    const char buffer[] = {'a', 'b', '\0', 'c', '\0'};
+    CHECK(string(buffer) == "ab"_nt);
+
+    counting_resource mr;
+    const string in_pool(text, mr);
+    CHECK(mr.allocations == 1);
+
+    string t;
+    t = text;
+    CHECK(t == s);
+    t = "tiny";
+    CHECK(t == "tiny"_nt);
+    t = {};
+    CHECK(t.empty());
 }

@@ -31,8 +31,8 @@ namespace jio::test
         }
         ~scoped_throwing_contract_handler() { set_contract_violation_handler(m_previous); }
         scoped_throwing_contract_handler(const scoped_throwing_contract_handler &) = delete;
-        scoped_throwing_contract_handler &
-        operator=(const scoped_throwing_contract_handler &) = delete;
+        scoped_throwing_contract_handler &operator=(const scoped_throwing_contract_handler &) =
+            delete;
 
     private:
         static void throw_failure(const contract_violation &v) { throw contract_failure(v); }

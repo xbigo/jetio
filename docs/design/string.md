@@ -24,7 +24,7 @@ An object is `string_object_size` bytes, a constant that is 16 and the same on e
 
 ## Memory
 
-Storage of a shared string comes from a `std::pmr::memory_resource` (never null) whose pointer is kept in the block, so a pool can serve strings that stay reference counted, and the string is freed where it was allocated. There is no allocator parameter on the type: `std::pmr::string` and `jio::string` stay one type each. The resource must outlive every string that uses it. The default is `std::pmr::get_default_resource()`.
+Storage of a shared string comes from a `std::pmr::memory_resource` (never null) whose pointer is kept in the block, so a pool can serve strings that stay reference counted, and the string is freed where it was allocated. There is no allocator parameter on the type: `std::pmr::string` and `jio::string` stay one type each. The resource must outlive every string that uses it. The default is `std::pmr::get_default_resource()`, spelled `jio::default_resource()`; `jio::string_of<T>` is the string of the characters of `T`, for the return types.
 
 A function that makes a string takes the resource as its last parameter, with that default, except `concat_in`, whose parameter pack comes last, so the resource is first.
 

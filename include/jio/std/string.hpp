@@ -56,6 +56,13 @@ namespace jio
     };
     inline constexpr borrow_t borrow{};
 
+    /// The memory resource of the functions that make a string, when they are given none: the
+    /// default resource of std::pmr.
+    inline std::pmr::memory_resource &default_resource() noexcept
+    {
+        return *std::pmr::get_default_resource();
+    }
+
     /// The size of a string object in bytes, the same on every platform. At least 16 and a
     /// multiple of 8; a larger value makes longer strings tiny (24 gives 23 characters, 32 gives
     /// 31), at the price of a larger object. The layout adapts; nothing else depends on it.
@@ -70,6 +77,9 @@ namespace jio
     };
 
     template <typename CharT, typename Traits = std::char_traits<CharT>> class basic_string;
+
+    /// The string of the characters of T, T being a string or a range of characters.
+    template <typename T> using string_of = basic_string<char_type_t<T>>;
 
     namespace detail
     {
@@ -97,10 +107,6 @@ namespace jio
             return total;
         }
 
-        inline std::pmr::memory_resource &default_resource() noexcept
-        {
-            return *std::pmr::get_default_resource();
-        }
     } // namespace detail
 
     template <typename CharT, typename Traits> class basic_string
@@ -161,14 +167,12 @@ namespace jio
         /// to be terminated).
         /// @pre text != nullptr (critical), and a CharT() follows the characters
         /// @throws std::length_error if the string is longer than max_size(), std::bad_alloc
-        explicit basic_string(const CharT *text,
-                              std::pmr::memory_resource &mr = detail::default_resource())
+        explicit basic_string(const CharT *text, std::pmr::memory_resource &mr = default_resource())
             : basic_string(copy_of_(string_view_type(text, length_(text)), mr))
         {
             JIO_Expects_critical(text != nullptr);
         }
-        basic_string(std::nullptr_t,
-                     std::pmr::memory_resource & = detail::default_resource()) = delete;
+        basic_string(std::nullptr_t, std::pmr::memory_resource & = default_resource()) = delete;
 
         /// A copy of the characters of `text`, tiny if they are few, else in a block from `mr`.
         /// @throws std::length_error if text.size() > max_size(), std::bad_alloc
@@ -176,8 +180,7 @@ namespace jio
             requires(string_view_source<U> && std::same_as<char_type_t<U>, CharT> &&
                      std::constructible_from<string_view_type, const U &> &&
                      !std::same_as<std::remove_cvref_t<U>, basic_string>)
-        explicit basic_string(const U &text,
-                              std::pmr::memory_resource &mr = detail::default_resource())
+        explicit basic_string(const U &text, std::pmr::memory_resource &mr = default_resource())
             : basic_string(copy_of_(string_view_type(text), mr))
         {
         }
@@ -514,8 +517,7 @@ namespace jio
 
         /// The string of the pieces, with the storage of a shared one from `mr`.
         /// @throws std::length_error if it would be longer than max_size(), std::bad_alloc
-        basic_string<value_type>
-        to_string(std::pmr::memory_resource &mr = detail::default_resource()) const
+        basic_string<value_type> to_string(std::pmr::memory_resource &mr = default_resource()) const
         {
             return detail::build_from_pieces<value_type, std::char_traits<value_type>>(
                 mr, [&](const auto &visit) { visit_pieces_(visit); });
@@ -580,8 +582,8 @@ namespace jio
     /// @throws std::length_error if it would be longer than max_size(), std::bad_alloc
     template <string_view_source First, string_view_source... Rest>
         requires(std::same_as<char_type_t<First>, char_type_t<Rest>> && ...)
-    [[nodiscard]] basic_string<char_type_t<First>>
-    concat_in(std::pmr::memory_resource &mr, const First &first, const Rest &...rest)
+    [[nodiscard]] string_of<First> concat_in(std::pmr::memory_resource &mr, const First &first,
+                                             const Rest &...rest)
     {
         using char_type = char_type_t<First>;
         const std::basic_string_view<char_type> views[] = {
@@ -598,9 +600,9 @@ namespace jio
     /// concat_in with the default resource of std::pmr.
     template <string_view_source First, string_view_source... Rest>
         requires(std::same_as<char_type_t<First>, char_type_t<Rest>> && ...)
-    [[nodiscard]] basic_string<char_type_t<First>> concat(const First &first, const Rest &...rest)
+    [[nodiscard]] string_of<First> concat(const First &first, const Rest &...rest)
     {
-        return concat_in(detail::default_resource(), first, rest...);
+        return concat_in(default_resource(), first, rest...);
     }
 
     /// The pieces of a range with `separator` between them, made with one allocation if the
@@ -610,9 +612,8 @@ namespace jio
         requires(
             string_view_source<std::ranges::range_value_t<Range>> &&
             std::same_as<char_type_t<std::ranges::range_value_t<Range>>, char_type_t<Separator>>)
-    [[nodiscard]] basic_string<char_type_t<Separator>>
-    join(const Range &pieces, const Separator &separator,
-         std::pmr::memory_resource &mr = detail::default_resource())
+    [[nodiscard]] string_of<Separator> join(const Range &pieces, const Separator &separator,
+                                            std::pmr::memory_resource &mr = default_resource())
     {
         using char_type = char_type_t<Separator>;
         const std::basic_string_view<char_type> glue(separator);

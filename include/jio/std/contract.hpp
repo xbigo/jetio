@@ -93,8 +93,8 @@ namespace jio
     /// @param handler the new handler; nullptr restores the default one
     /// @return the previous handler
     /// @post the stored handler != nullptr
-    inline contract_violation_handler
-    set_contract_violation_handler(contract_violation_handler handler) noexcept
+    inline contract_violation_handler set_contract_violation_handler(
+        contract_violation_handler handler) noexcept
     {
         return detail::violation_handler.exchange(handler ? handler : &detail::abort_on_violation);
     }
@@ -102,9 +102,9 @@ namespace jio
     /// Reports a violated contract. Called by the macros; not meant to be called directly.
     /// Never returns normally: the handler terminates or throws, and if it returns the program
     /// is aborted.
-    [[noreturn]] inline void
-    handle_contract_violation(contract_kind kind, std::string_view expression,
-                              std::source_location location = std::source_location::current())
+    [[noreturn]] inline void handle_contract_violation(
+        contract_kind kind, std::string_view expression,
+        std::source_location location = std::source_location::current())
     {
         detail::violation_handler.load()(
             contract_violation{.kind = kind, .expression = expression, .location = location});

@@ -16,3 +16,4 @@ IncludeCategories:
     Priority: 2
   - Regex: '^<[a-z_]+>$'
     Priority: 3
+PenaltyReturnTypeOnItsOwnLine: 10000

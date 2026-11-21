@@ -15,7 +15,7 @@
 - The violation of a precondition is not tested in any function. Detecting it is the right of the implementer, nothing depends on it, and checking the checks would start a recursion (who tests the test of the check?). Only the contract facility itself is tested, as a white-box test: its macros reach the handler, with the kind and at the level they should (`tests/unit/std/contract.cpp`, with a handler that throws, `tests/unit/support/contract_guard.hpp`).
 - Unit tests are always part of `all`: a build that does not build them is not a build. They are not built when jetio is a subproject (`JETIO_BUILD_TESTS` defaults to OFF there). Benchmarks and fuzzers are part of `all` by default; with `JETIO_BENCH_AND_FUZZ_IN_ALL=OFF` they are built only through their aggregate target.
 - Default test presets run `unit` only. Benchmarks run through `*-bench` test presets, fuzzers through the fuzz preset.
-- Benchmarks are measured in release presets only. In ctest they run as a short smoke test. `tests/bench/memory.cpp` exercises `memory_device` through the protocol functions; compare a release preset with its `-audit` twin to see the cost of contract checking.
+- Benchmarks are measured in release presets only. In ctest they run as a short smoke test. `tests/bench/memory.cpp` exercises `memory_device` through the protocol functions; compare a release preset with its `-audit` twin to see the cost of contract checking. `tests/bench/string.cpp` compares the ways of building a string from three pieces, with the number of allocations of each (it replaces `operator new` to count them), see [string](string.md).
 
 ## Unit test time
 

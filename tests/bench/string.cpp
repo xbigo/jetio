@@ -13,6 +13,10 @@
 // string allocates. The intermediate std::string of the append cases has the same limits.
 // The counter `allocs` is the number of allocations of one iteration.
 //
+// The cases `string_baseline_*` measure the parts, for the same total lengths: the loop alone, a
+// copy of a jio::string (a block is shared: an atomic increment and decrement) and of a
+// std::string, a jio::string made from a view (one allocation and a copy), and the allocator.
+//
 //   jetio_benchmarks --benchmark_filter='^string_' --benchmark_min_time=0.1s
 #include <jio/jio.hpp>
 
@@ -85,6 +89,15 @@ namespace
         for (const int n : {4, 6, 16, 64})
             b->Arg(n);
     }
+
+    // One string of 3n characters, as a std::string and as a jio::string.
+    struct whole
+    {
+        explicit whole(std::size_t n) : s(3 * n, 'x'), j{std::string_view(s)} {}
+
+        std::string s;
+        jio::string j;
+    };
 
     // The allocations are counted from `before`, the count at the start of the loop.
     void count(benchmark::State &state, std::size_t before)
@@ -169,3 +182,69 @@ BENCHMARK(string_concat)->Apply(lengths);
 BENCHMARK(string_std_string_append)->Apply(lengths);
 BENCHMARK(string_std_string_append_reserved)->Apply(lengths);
 BENCHMARK(string_std_string_plus)->Apply(lengths);
+
+static void string_baseline_loop(benchmark::State &state)
+{
+    whole w(static_cast<std::size_t>(state.range(0)));
+    const std::size_t before = allocations;
+    for (auto _ : state)
+        benchmark::DoNotOptimize(w.j);
+    count(state, before);
+}
+
+static void string_baseline_copy(benchmark::State &state)
+{
+    const whole w(static_cast<std::size_t>(state.range(0)));
+    const std::size_t before = allocations;
+    for (auto _ : state)
+    {
+        jio::string t = w.j;
+        benchmark::DoNotOptimize(t);
+    }
+    count(state, before);
+}
+
+static void string_baseline_copy_std_string(benchmark::State &state)
+{
+    const whole w(static_cast<std::size_t>(state.range(0)));
+    const std::size_t before = allocations;
+    for (auto _ : state)
+    {
+        std::string t = w.s;
+        benchmark::DoNotOptimize(t);
+    }
+    count(state, before);
+}
+
+static void string_baseline_from_view(benchmark::State &state)
+{
+    const whole w(static_cast<std::size_t>(state.range(0)));
+    const std::size_t before = allocations;
+    for (auto _ : state)
+    {
+        jio::string t{std::string_view(w.s)};
+        benchmark::DoNotOptimize(t);
+    }
+    count(state, before);
+}
+
+// What a block of the string costs from the allocator alone: the size of the characters and the
+// header of the block.
+static void string_baseline_allocator(benchmark::State &state)
+{
+    const std::size_t size = 3 * static_cast<std::size_t>(state.range(0)) + 1 + 16;
+    const std::size_t before = allocations;
+    for (auto _ : state)
+    {
+        void *p = ::operator new(size);
+        benchmark::DoNotOptimize(p);
+        ::operator delete(p);
+    }
+    count(state, before);
+}
+
+BENCHMARK(string_baseline_loop)->Apply(lengths);
+BENCHMARK(string_baseline_copy)->Apply(lengths);
+BENCHMARK(string_baseline_copy_std_string)->Apply(lengths);
+BENCHMARK(string_baseline_from_view)->Apply(lengths);
+BENCHMARK(string_baseline_allocator)->Apply(lengths);

@@ -56,26 +56,52 @@ A pointer enters only as a C string, explicitly, and the assignment is the same 
 
 ## Measured: `a + b + c`
 
-`tests/bench/string.cpp` makes a string of three pieces (each a third of the length) in several ways, and counts the allocations of one iteration (the replaced `operator new` of the benchmark counts them, those of `jio::string` too). Median of 3 runs of 0.1 s, in the release presets run natively (the container was not available), on the AMD Ryzen 7 7840H of the [build matrix](build-matrix.md); times are CPU ns, then allocations.
+`tests/bench/string.cpp` makes a string of three pieces (each a third of the length) in several ways, and counts the allocations of one iteration (the replaced `operator new` of the benchmark counts them, those of `jio::string` too). Median of 3 runs of 0.1 s, in the release presets run natively (the container was not available), on the AMD Ryzen 7 7840H of the [build matrix](build-matrix.md); times are CPU ns, then allocations. All are `-O3 -DNDEBUG -g -std=c++23`, without `-march` and without LTO; contract checks are at the level of a release build (critical ones only).
 
 | Result | 12 chars | 18 chars | 48 chars | 192 chars |
 | --- | --- | --- | --- | --- |
 | **GCC 16, libstdc++** (tiny up to 15 chars in both strings) | | | | |
-| `a + b + c` of `jio::string`, the concator | 9.5 / 0 | 20.1 / 1 | 19.1 / 1 | 23.0 / 1 |
-| `concat(a, b, c)` | 10.2 / 0 | 20.0 / 1 | 20.3 / 1 | 23.5 / 1 |
-| `std::string` `+=` twice, then `jio::string(t)` | 10.2 / 0 | 29.3 / 2 | 40.8 / 4 | 40.0 / 4 |
-| the same with `reserve` | 11.5 / 0 | 27.7 / 2 | 26.9 / 2 | 28.0 / 2 |
-| `std::string` `a + b + c`, no `jio::string` | 12.4 / 0 | 16.4 / 1 | 20.9 / 2 | 19.0 / 2 |
-| **Clang 22, libc++** (tiny up to 15 chars for `jio::string`, 22 for `std::string`) | | | | |
-| the concator | 12.5 / 0 | 23.2 / 1 | 22.1 / 1 | 20.9 / 1 |
-| `concat(a, b, c)` | 11.5 / 0 | 21.1 / 1 | 20.1 / 1 | 19.0 / 1 |
-| `std::string` `+=` twice, then `jio::string(t)` | 24.5 / 0 | 32.9 / 1 | 43.7 / 3 | 47.7 / 4 |
-| the same with `reserve` | 27.5 / 0 | 36.1 / 1 | 33.3 / 2 | 33.0 / 2 |
-| `std::string` `a + b + c`, no `jio::string` | 15.3 / 0 | 16.7 / 0 | 23.3 / 2 | 21.6 / 2 |
+| the concator `a + b + c` of `jio::string` | 9.8 / 0 | 22.0 / 1 | 20.8 / 1 | 20.0 / 1 |
+| `concat(a, b, c)` | 10.6 / 0 | 21.1 / 1 | 21.1 / 1 | 19.7 / 1 |
+| `std::string` `+=` twice, then `jio::string(t)` | 9.9 / 0 | 30.1 / 2 | 42.2 / 4 | 40.3 / 4 |
+| the same with `reserve` | 11.2 / 0 | 28.9 / 2 | 28.3 / 2 | 27.5 / 2 |
+| `std::string` `a + b + c`, no `jio::string` | 14.5 / 0 | 16.5 / 1 | 21.3 / 2 | 19.4 / 2 |
+| **Clang 21, libstdc++** (the same library as above) | | | | |
+| the concator `a + b + c` of `jio::string` | 13.3 / 0 | 24.1 / 1 | 25.0 / 1 | 22.6 / 1 |
+| `concat(a, b, c)` | 10.6 / 0 | 20.8 / 1 | 21.7 / 1 | 20.7 / 1 |
+| `std::string` `+=` twice, then `jio::string(t)` | 15.0 / 0 | 34.9 / 2 | 49.4 / 4 | 45.7 / 4 |
+| the same with `reserve` | 15.4 / 0 | 30.0 / 2 | 30.1 / 2 | 29.6 / 2 |
+| `std::string` `a + b + c`, no `jio::string` | 12.8 / 0 | 20.4 / 1 | 25.6 / 2 | 24.0 / 2 |
+| **Clang 22, libc++ 22** (tiny up to 15 chars for `jio::string`, 22 for `std::string`) | | | | |
+| the concator `a + b + c` of `jio::string` | 11.5 / 0 | 22.2 / 1 | 22.7 / 1 | 21.7 / 1 |
+| `concat(a, b, c)` | 10.6 / 0 | 20.4 / 1 | 21.0 / 1 | 20.0 / 1 |
+| `std::string` `+=` twice, then `jio::string(t)` | 25.0 / 0 | 33.3 / 1 | 43.7 / 3 | 48.3 / 4 |
+| the same with `reserve` | 28.3 / 0 | 35.3 / 1 | 34.4 / 2 | 33.7 / 2 |
+| `std::string` `a + b + c`, no `jio::string` | 15.5 / 0 | 17.1 / 0 | 23.3 / 2 | 22.5 / 2 |
 
-- The concator makes one allocation when the result is not tiny, none when it is, which is the least a string that owns its block can do. Without it, a `jio::string` made through a `std::string` takes two to four allocations and is 1.5 to 2 times slower; with `reserve` it is two allocations and about 1.3 times slower. The concator costs the same as `concat` (within 2 ns), since it is the same copy.
+The parts, for strings of the same total length:
+
+| Part | 12 chars | 18 chars | 48 chars | 192 chars |
+| --- | --- | --- | --- | --- |
+| **GCC 16, libstdc++** | | | | |
+| the loop alone | 0.1 / 0 | 0.1 / 0 | 0.1 / 0 | 0.1 / 0 |
+| copy of a `jio::string` | 0.6 / 0 | 2.5 / 0 | 2.5 / 0 | 2.5 / 0 |
+| copy of a `std::string` | 2.6 / 0 | 7.1 / 1 | 6.9 / 1 | 7.5 / 1 |
+| `jio::string` from a `std::string_view` | 2.2 / 0 | 15.1 / 1 | 14.9 / 1 | 15.4 / 1 |
+| `operator new` and `operator delete` | 4.8 / 1 | 4.6 / 1 | 4.6 / 1 | 4.6 / 1 |
+| **Clang 22, libc++ 22** | | | | |
+| the loop alone | 0.2 / 0 | 0.2 / 0 | 0.2 / 0 | 0.2 / 0 |
+| copy of a `jio::string` | 0.8 / 0 | 2.5 / 0 | 2.5 / 0 | 2.5 / 0 |
+| copy of a `std::string` | 0.6 / 0 | 0.6 / 0 | 7.3 / 1 | 7.9 / 1 |
+| `jio::string` from a `std::string_view` | 8.2 / 0 | 15.3 / 1 | 15.4 / 1 | 20.8 / 1 |
+| `operator new` and `operator delete` | 4.4 / 1 | 4.5 / 1 | 4.5 / 1 | 4.4 / 1 |
+
+- The concator makes one allocation when the result is not tiny, none when it is, which is the least a string that owns its block can do. Without it, a `jio::string` made through a `std::string` takes two to four allocations and is 1.5 to 2 times slower; with `reserve` it is two allocations and about 1.3 times slower. The concator costs the same as `concat` (within 3.5 ns), since it is the same copy.
 - A `std::string` `a + b + c` takes two allocations and about as long as one allocation of `jio::string`: the operators reuse the temporary. So the concator is as fast as `std::string` and makes a `jio::string`, which is cheap to copy afterwards, with half the allocations.
-- The one place where `jio::string` loses is the length between its limit and the one of the standard library: 18 characters with libc++, where a `std::string` stays in the object and has no allocation (16.7 ns against 23.2 ns). `string_object_size` of 24 would put the limit at 23.
+- The one place where `jio::string` loses is the length between its limit and the one of the standard library: 18 characters with libc++, where a `std::string` stays in the object and has no allocation (17.1 ns against 22.2 ns). `string_object_size` of 24 would put the limit at 23.
+- Where the time goes, from the parts: the loop costs nothing (0.1 ns), the allocator alone 4.5 ns (`operator new` and `operator delete`), copying a `jio::string` 0.6 ns if it is tiny and 2.5 ns if it has a block (an atomic increment and decrement), and the copy of the bytes is cheap (from 48 to 192 characters the result grows by about 1 to 4 ns). Making a `jio::string` of a view takes about 15 ns with a block, against 7 ns for copying a `std::string`: besides the allocator, the block is allocated through the memory resource (two virtual calls), has its header written, and is released with an atomic decrement. A tiny one takes 2.2 ns with GCC and 8.1 ns with Clang, which is most of what Clang loses on the concator at 12 characters; why was not looked into.
+- The toolchains: the code of `jio::string` takes about the same time with both libraries (Clang with libstdc++ and with libc++ differ by under 2 ns on the concator and `concat`), and GCC is faster than Clang on it by 2 to 4 ns, so that part is the compiler. The rows of `std::string` differ with the library, most at 12 characters, where nothing is allocated (`+=` twice: 9.9 ns with GCC and libstdc++, 15.0 with Clang and libstdc++, 25.0 with libc++); how much of the member functions of `std::string` each compiler inlines was not checked.
+- Clang with `-O2` instead of `-O3` takes the same time: of the 40 cases (5 ways and 5 parts, 4 lengths) with each library, 3 with libstdc++ and 4 with libc++ differ by more than 1 ns, all at 18 or 192 characters, and the largest differences are 3.4 ns (`jio::string` from a view, 192 characters, slower with `-O2`) and 3.2 ns (`std::string` `a + b + c`, 192 characters, libc++, slower with `-O2`); none is faster by more than 2.3 ns.
 
 ## Tests
 
